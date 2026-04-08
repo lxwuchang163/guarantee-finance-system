@@ -3,9 +3,11 @@ package com.guarantee.finance.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.guarantee.finance.dto.LoginDTO;
 import com.guarantee.finance.dto.UserDTO;
 import com.guarantee.finance.dto.UserQueryDTO;
 import com.guarantee.finance.entity.SysUser;
+import com.guarantee.finance.vo.LoginVO;
 import com.guarantee.finance.vo.OnlineUserVO;
 import com.guarantee.finance.vo.UserVO;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +17,10 @@ import java.io.IOException;
 import java.util.List;
 
 public interface SysUserService extends IService<SysUser> {
+
+    LoginVO login(LoginDTO loginDTO);
+
+    void logout(Long userId);
 
     IPage<UserVO> queryPage(UserQueryDTO queryDTO, Page<UserVO> page);
 

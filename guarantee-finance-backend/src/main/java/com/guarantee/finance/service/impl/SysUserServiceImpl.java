@@ -61,6 +61,61 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private static final String ONLINE_USER_KEY = "online:user:";
 
     @Override
+    public LoginVO login(LoginDTO loginDTO) {
+        // 1. 根据用户名查询用户
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getUsername, loginDTO.getUsername());
+        SysUser user = getOne(wrapper);
+
+        // 2. 用户不存在
+        if (user == null) {
+            throw new RuntimeException("用户名或密码错误");
+        }
+
+        // 3. 用户被禁用
+        if (user.getStatus() == 0) {
+            throw new RuntimeException("账号已被禁用，请联系管理员");
+        }
+
+        // 4. 验证密码
+        if (!BCrypt.checkpw(loginDTO.getPassword(), user.getPassword())) {
+            throw new RuntimeException("用户名或密码错误");
+        }
+
+        // 5. 生成JWT token
+        String token = jwtUtils.generateToken(user.getId(), user.getUsername());
+
+        // 6. 将token存入Redis
+        String redisKey = com.guarantee.finance.common.Constants.TOKEN_KEY + user.getId();
+        redisTemplate.opsForValue().set(redisKey, token, 1, TimeUnit.HOURS);
+
+        // 7. 记录在线用户信息
+        String onlineKey = ONLINE_USER_KEY + token;
+        Map<String, Object> onlineInfo = new HashMap<>();
+        onlineInfo.put("userId", user.getId());
+        onlineInfo.put("username", user.getUsername());
+        onlineInfo.put("nickname", user.getNickname());
+        onlineInfo.put("loginTime", LocalDateTime.now().toString());
+        redisTemplate.opsForValue().set(onlineKey, onlineInfo, 1, TimeUnit.HOURS);
+
+        // 8. 返回登录信息
+        return new LoginVO(token, user.getId(), user.getUsername(), user.getNickname());
+    }
+
+    @Override
+    public void logout(Long userId) {
+        // 1. 删除Redis中的token
+        String redisKey = com.guarantee.finance.common.Constants.TOKEN_KEY + userId;
+        String token = (String) redisTemplate.opsForValue().get(redisKey);
+        if (token != null) {
+            redisTemplate.delete(redisKey);
+            // 删除在线用户信息
+            String onlineKey = ONLINE_USER_KEY + token;
+            redisTemplate.delete(onlineKey);
+        }
+    }
+
+    @Override
     public IPage<UserVO> queryPage(UserQueryDTO queryDTO, Page<UserVO> page) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(queryDTO.getUsername())) {

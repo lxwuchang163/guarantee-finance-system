@@ -1,11 +1,13 @@
-# 担保集团业务财务系统
+# 集团业务财务系统
 
 ## 项目简介
-担保集团业务财务系统是一套完整的担保业务财务管理平台，涵盖基础信息同步、收付款管理、银行对账、银企直连、会计凭证等核心业务模块。
+
+集团业务财务系统是一套完整的担保业务财务管理平台，涵盖基础信息同步、收付款管理、银行对账、银企直连、会计凭证等核心业务模块。
 
 ## 技术栈
 
 ### 后端 (guarantee-finance-backend)
+
 - **框架**: Spring Boot 3.x
 - **安全**: Spring Security + JWT
 - **ORM**: MyBatis-Plus
@@ -14,6 +16,7 @@
 - **数据库**: MySQL 8.0+
 
 ### 前端 (guarantee-finance-frontend)
+
 - **框架**: Vue 3 + TypeScript
 - **构建工具**: Vite
 - **UI组件库**: Element Plus
@@ -53,6 +56,7 @@ Business-Finance System/
 ## 快速开始
 
 ### 环境要求
+
 - JDK 17+
 - Node.js 18+
 - MySQL 8.0+
@@ -60,26 +64,31 @@ Business-Finance System/
 - Maven 3.8+
 
 ### 1. 数据库初始化
+
 ```bash
 mysql -u root -p < sql/init.sql
 ```
 
 ### 2. 启动后端
+
 ```bash
 cd guarantee-finance-backend
 mvn spring-boot:run
 ```
-后端服务运行在: http://localhost:8080
 
-Swagger文档: http://localhost:8080/swagger-ui.html
+后端服务运行在: <http://localhost:8080>
+
+Swagger文档: <http://localhost:8080/swagger-ui.html>
 
 ### 3. 启动前端
+
 ```bash
 cd guarantee-finance-frontend
 npm install
 npm run dev
 ```
-前端服务运行在: http://localhost:5173
+
+前端服务运行在: <http://localhost:5173>
 
 ## 核心功能模块
 
@@ -94,5 +103,7 @@ npm run dev
 9. **NC Cloud对接** - NC同步日志/异常处理
 
 ## 默认账号
+
 - 用户名: admin
 - 密码: admin123
+
