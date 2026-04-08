@@ -192,14 +192,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createUser(UserDTO dto) {
-        boolean usernameExists = checkUsernameUnique(dto.getUsername(), null);
-        if (usernameExists) {
+        boolean usernameUnique = checkUsernameUnique(dto.getUsername(), null);
+        if (!usernameUnique) {
             throw new RuntimeException("用户名已存在: " + dto.getUsername());
         }
 
         if (StrUtil.isNotBlank(dto.getPhone())) {
-            boolean phoneExists = checkPhoneUnique(dto.getPhone(), null);
-            if (phoneExists) {
+            boolean phoneUnique = checkPhoneUnique(dto.getPhone(), null);
+            if (!phoneUnique) {
                 throw new RuntimeException("手机号已存在: " + dto.getPhone());
             }
         }
@@ -235,15 +235,15 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         }
 
         if (!existing.getUsername().equals(dto.getUsername())) {
-            boolean usernameExists = checkUsernameUnique(dto.getUsername(), dto.getId());
-            if (usernameExists) {
+            boolean usernameUnique = checkUsernameUnique(dto.getUsername(), dto.getId());
+            if (!usernameUnique) {
                 throw new RuntimeException("用户名已存在: " + dto.getUsername());
             }
         }
 
         if (StrUtil.isNotBlank(dto.getPhone()) && !dto.getPhone().equals(existing.getPhone())) {
-            boolean phoneExists = checkPhoneUnique(dto.getPhone(), dto.getId());
-            if (phoneExists) {
+            boolean phoneUnique = checkPhoneUnique(dto.getPhone(), dto.getId());
+            if (!phoneUnique) {
                 throw new RuntimeException("手机号已存在: " + dto.getPhone());
             }
         }
@@ -336,8 +336,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
                     continue;
                 }
 
-                boolean usernameExists = checkUsernameUnique(username.trim(), null);
-                if (usernameExists) {
+                boolean usernameUnique = checkUsernameUnique(username.trim(), null);
+                if (!usernameUnique) {
                     failCount++;
                     failMsg.append(String.format("第%d行: 用户名%s已存在; ", i + 1, username));
                     continue;
@@ -454,7 +454,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (id != null) {
             wrapper.ne(SysUser::getId, id);
         }
-        return count(wrapper) > 0;
+        return count(wrapper) == 0;
     }
 
     @Override
@@ -464,7 +464,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (id != null) {
             wrapper.ne(SysUser::getId, id);
         }
-        return count(wrapper) > 0;
+        return count(wrapper) == 0;
     }
 
     private void saveUserRoles(Long userId, List<Long> roleIds) {

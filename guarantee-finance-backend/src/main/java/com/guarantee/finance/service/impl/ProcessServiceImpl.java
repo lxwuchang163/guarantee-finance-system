@@ -256,7 +256,7 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessDefinitionMapper, Pro
     }
 
     @Override
-    @@Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void reject(Long instanceId, String opinion) {
         LoginUser currentUser = getCurrentUser();
         ProcessInstance instance = processInstanceMapper.selectById(instanceId);

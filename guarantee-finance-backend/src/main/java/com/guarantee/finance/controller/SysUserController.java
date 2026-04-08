@@ -123,8 +123,8 @@ public class SysUserController {
     @GetMapping("/checkUsername")
     public R<Boolean> checkUsernameUnique(@RequestParam String username,
                                           @RequestParam(required = false) Long id) {
-        boolean exists = sysUserService.checkUsernameUnique(username, id);
-        return R.ok(!exists);
+        boolean isUnique = sysUserService.checkUsernameUnique(username, id);
+        return R.ok(isUnique);
     }
 
     @Operation(summary = "检查手机号唯一性")
@@ -134,7 +134,7 @@ public class SysUserController {
         if (phone == null || phone.trim().isEmpty()) {
             return R.ok(true);
         }
-        boolean exists = sysUserService.checkPhoneUnique(phone, id);
-        return R.ok(!exists);
+        boolean isUnique = sysUserService.checkPhoneUnique(phone, id);
+        return R.ok(isUnique);
     }
 }
