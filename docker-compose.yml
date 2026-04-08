@@ -2,14 +2,12 @@ version: '3.8'
 
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:5.5
     container_name: gf-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Guarantee@2024}
       MYSQL_DATABASE: guarantee_finance
-      MYSQL_CHARACTER_SET_SERVER: utf8mb4
-      MYSQL_COLLATION_SERVER: utf8mb4_general_ci
       TZ: Asia/Shanghai
     ports:
       - "${MYSQL_PORT:-3306}:3306"
@@ -20,7 +18,8 @@ services:
     command:
       --max_connections=200
       --innodb_buffer_pool_size=512M
-      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8
+      --collation-server=utf8_general_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
