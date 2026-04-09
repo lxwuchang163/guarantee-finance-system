@@ -13,7 +13,7 @@
 - **ORM**: MyBatis-Plus
 - **缓存**: Redis
 - **文档**: Swagger/OpenAPI 3.0
-- **数据库**: MySQL 8.0+
+- **数据库**: MySQL 5.5+
 
 ### 前端 (guarantee-finance-frontend)
 
@@ -59,7 +59,7 @@ Business-Finance System/
 
 - JDK 17+
 - Node.js 18+
-- MySQL 8.0+
+- MySQL 5.5+
 - Redis 6.0+
 - Maven 3.8+
 
