@@ -12,6 +12,7 @@ public class ProcessNode extends BaseEntity {
 
     private Long definitionId;
     private String nodeName;
+    private String nodeType;
     private String approverType; // role/user/specific
     private String approverValue; // 角色编码或用户ID
     private Integer sortOrder;

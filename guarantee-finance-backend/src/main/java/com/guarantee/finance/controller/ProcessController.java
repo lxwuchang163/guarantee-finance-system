@@ -90,4 +90,30 @@ public class ProcessController {
     public R<List<?>> getMyInitiated() {
         return R.ok(processService.getMyInitiated());
     }
+
+    @Operation(summary = "更新流程定义状态")
+    @PutMapping("/definition/status/{id}")
+    public R<Void> updateDefinitionStatus(@PathVariable Long id, @RequestParam Integer status) {
+        processService.updateDefinitionStatus(id, status);
+        return R.ok();
+    }
+
+    @Operation(summary = "撤回")
+    @PutMapping("/instance/withdraw/{instanceId}")
+    public R<Void> withdraw(@PathVariable Long instanceId) {
+        processService.withdraw(instanceId);
+        return R.ok();
+    }
+
+    @Operation(summary = "审批历史")
+    @GetMapping("/instance/history/{instanceId}")
+    public R<List<?>> getApproveHistory(@PathVariable Long instanceId) {
+        return R.ok(processService.getApproveHistory(instanceId));
+    }
+
+    @Operation(summary = "流程实例详情")
+    @GetMapping("/instance/{instanceId}")
+    public R<?> getInstanceDetail(@PathVariable Long instanceId) {
+        return R.ok(processService.getInstanceDetail(instanceId));
+    }
 }

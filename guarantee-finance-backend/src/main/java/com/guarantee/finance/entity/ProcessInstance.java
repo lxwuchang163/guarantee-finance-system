@@ -12,14 +12,18 @@ import java.time.LocalDateTime;
 @TableName("process_instance")
 public class ProcessInstance extends BaseEntity {
 
-    private String instanceNo;
     private Long definitionId;
+    private Long businessKey;
     private String businessType;
-    private String businessNo;
+    private Integer status; // 0-进行中 1-待审批 2-已通过 3-已驳回 4-已撤回
+    private Integer currentNodeIndex;
     private Long currentNodeId;
     private String currentNodeName;
-    private Integer status; // 0-进行中 1-已通过 2-已驳回 3-已撤回
+    private String currentApprover;
     private Long initiatorId;
     private String initiatorName;
     private LocalDateTime initiatorTime;
+    
+    // 非数据库字段
+    private String definitionName;
 }

@@ -11,6 +11,10 @@ public interface ProcessService {
 
     ProcessDefinition getDefinition(Long id);
 
+    Object getDefinitionDetail(Long id);
+
+    List<?> getDefinitions();
+
     List<ProcessDefinition> listDefinitions(String name, Integer status);
 
     void createDefinition(ProcessDTO dto);
@@ -21,13 +25,15 @@ public interface ProcessService {
 
     void updateDefinitionStatus(Long id, Integer status);
 
-    ProcessInstance startProcess(Long definitionId, Long businessKey, String businessType, Map<String, Object> variables);
+    Map<String, Object> startProcess(Map<String, Object> params);
 
-    void approve(Long instanceId, String opinion);
+    void approve(Long instanceId, String opinion, String type);
 
     void reject(Long instanceId, String opinion);
 
     void withdraw(Long instanceId);
+
+    void cancel(Long instanceId);
 
     List<?> getMyPending();
 

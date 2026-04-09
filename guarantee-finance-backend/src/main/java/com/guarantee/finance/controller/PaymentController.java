@@ -47,55 +47,55 @@ public class PaymentController {
     @Operation(summary = "新增付款单")
     @PostMapping
     public R<Long> create(@RequestBody PaymentDTO dto) {
-        return R.ok(finPaymentService.create(dto), "创建成功");
+        return R.ok("创建成功", finPaymentService.create(dto));
     }
 
     @Operation(summary = "修改付款单")
     @PutMapping
     public R<Void> update(@RequestBody PaymentDTO dto) {
         finPaymentService.update(dto);
-        return R.ok("修改成功");
+        return R.ok("修改成功", null);
     }
 
     @Operation(summary = "删除付款单")
     @DeleteMapping("/{id}")
     public R<Void> delete(@PathVariable Long id) {
         finPaymentService.delete(id);
-        return R.ok("删除成功");
+        return R.ok("删除成功", null);
     }
 
     @Operation(summary = "提交审核")
     @PutMapping("/{id}/submit")
     public R<Void> submit(@PathVariable Long id) {
         finPaymentService.submit(id);
-        return R.ok("已提交审核");
+        return R.ok("已提交审核", null);
     }
 
     @Operation(summary = "审核通过/驳回")
     @PutMapping("/{id}/audit")
     public R<Void> audit(@PathVariable Long id, @RequestParam boolean pass) {
         finPaymentService.audit(id, pass);
-        return R.ok(pass ? "审核通过" : "已驳回");
+        return R.ok(pass ? "审核通过" : "已驳回", null);
     }
 
     @Operation(summary = "执行付款")
     @PutMapping("/{id}/pay")
     public R<Void> pay(@PathVariable Long id) {
         finPaymentService.pay(id);
-        return R.ok("付款指令已发送");
+        return R.ok("付款指令已发送", null);
     }
 
     @Operation(summary = "记账")
     @PutMapping("/{id}/post")
     public R<Void> post(@PathVariable Long id) {
         finPaymentService.post(id);
-        return R.ok("记账成功");
+        return R.ok("记账成功", null);
     }
 
     @Operation(summary = "冲销/作废")
     @PutMapping("/{id}/reverse")
     public R<Void> reverse(@PathVariable Long id) {
         finPaymentService.reverse(id);
-        return R.ok("冲销成功");
+        return R.ok("冲销成功", null);
     }
 }

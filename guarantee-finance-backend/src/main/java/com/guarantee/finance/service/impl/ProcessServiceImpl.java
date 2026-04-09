@@ -50,6 +50,27 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessDefinitionMapper, Pro
     }
 
     @Override
+    public Object getDefinitionDetail(Long id) {
+        return getDefinition(id);
+    }
+
+    @Override
+    public List<?> getDefinitions() {
+        LambdaQueryWrapper<ProcessDefinition> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(ProcessDefinition::getCreateTime);
+        List<ProcessDefinition> definitions = list(wrapper);
+
+        for (ProcessDefinition def : definitions) {
+            LambdaQueryWrapper<ProcessNode> nodeWrapper = new LambdaQueryWrapper<>();
+            nodeWrapper.eq(ProcessNode::getDefinitionId, def.getId());
+            nodeWrapper.orderByAsc(ProcessNode::getSortOrder);
+            def.setNodes(processNodeMapper.selectList(nodeWrapper));
+        }
+
+        return definitions;
+    }
+
+    @Override
     public List<ProcessDefinition> listDefinitions(String name, Integer status) {
         LambdaQueryWrapper<ProcessDefinition> wrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(name)) {
@@ -159,11 +180,15 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessDefinitionMapper, Pro
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ProcessInstance startProcess(Long definitionId, Long businessKey, String businessType, Map<String, Object> variables) {
+    public Map<String, Object> startProcess(Map<String, Object> params) {
         LoginUser currentUser = getCurrentUser();
         if (currentUser == null) {
             throw new RuntimeException("用户未登录");
         }
+
+        Long definitionId = Long.parseLong(params.get("definitionId").toString());
+        Long businessKey = Long.parseLong(params.get("businessKey").toString());
+        String businessType = params.get("businessType").toString();
 
         ProcessDefinition definition = getById(definitionId);
         if (definition == null || definition.getStatus() != 1) {
@@ -190,7 +215,7 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessDefinitionMapper, Pro
         ProcessNode firstNode = processNodeMapper.selectOne(nodeWrapper);
 
         if (firstNode != null) {
-            String approver = resolveApprover(firstNode, variables);
+            String approver = resolveApprover(firstNode, params);
             instance.setCurrentNodeId(firstNode.getId());
             instance.setCurrentNodeName(firstNode.getNodeName());
             instance.setCurrentApprover(approver);
@@ -202,10 +227,22 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessDefinitionMapper, Pro
             processInstanceMapper.updateById(instance);
         }
 
-        return instance;
+        Map<String, Object> result = new HashMap<>();
+        result.put("instanceId", instance.getId());
+        result.put("status", instance.getStatus());
+        return result;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void approve(Long instanceId, String opinion, String type) {
+        if ("approve".equals(type)) {
+            approve(instanceId, opinion);
+        } else if ("reject".equals(type)) {
+            reject(instanceId, opinion);
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public void approve(Long instanceId, String opinion) {
         LoginUser currentUser = getCurrentUser();
@@ -301,6 +338,11 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessDefinitionMapper, Pro
 
         instance.setStatus(4); // 已撤回
         processInstanceMapper.updateById(instance);
+    }
+
+    @Override
+    public void cancel(Long instanceId) {
+        withdraw(instanceId);
     }
 
     @Override

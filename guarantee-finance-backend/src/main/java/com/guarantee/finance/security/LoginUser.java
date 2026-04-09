@@ -28,6 +28,9 @@ public class LoginUser implements UserDetails {
     @JsonIgnore
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (permissions == null) {
+            return java.util.Collections.emptyList();
+        }
         return permissions.stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());

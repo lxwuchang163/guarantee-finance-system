@@ -22,6 +22,8 @@ public interface SysUserService extends IService<SysUser> {
 
     void logout(Long userId);
 
+    SysUser getUserInfo(Long userId);
+
     IPage<UserVO> queryPage(UserQueryDTO queryDTO, Page<UserVO> page);
 
     UserVO getUserDetail(Long id);

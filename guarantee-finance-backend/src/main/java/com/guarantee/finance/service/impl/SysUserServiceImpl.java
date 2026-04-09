@@ -133,6 +133,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
+    public SysUser getUserInfo(Long userId) {
+        return getById(userId);
+    }
+
+    @Override
     public IPage<UserVO> queryPage(UserQueryDTO queryDTO, Page<UserVO> page) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(queryDTO.getUsername())) {
