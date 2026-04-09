@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.guarantee.finance.common.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import java.math.BigDecimal;
 
 @Data
 @EqualsAndHashCode(callSuper = true)

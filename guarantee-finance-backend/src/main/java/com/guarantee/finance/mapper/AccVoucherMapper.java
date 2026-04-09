@@ -5,5 +5,4 @@ import com.guarantee.finance.entity.AccVoucher;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface AccVoucherMapper extends BaseMapper<AccVoucher> {
-}
+public interface AccVoucherMapper extends BaseMapper<AccVoucher> {}

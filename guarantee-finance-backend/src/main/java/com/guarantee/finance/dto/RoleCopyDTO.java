@@ -1,6 +1,7 @@
 package com.guarantee.finance.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data

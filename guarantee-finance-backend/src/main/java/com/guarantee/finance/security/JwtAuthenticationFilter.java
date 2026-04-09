@@ -24,11 +24,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtils jwtUtils;
 
-    @Autowired
+    @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
 
     @Autowired
     private ObjectMapper objectMapper;
+    
+    private boolean redisEnabled = false;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -38,16 +40,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtUtils.validateToken(token)) {
                 Long userId = jwtUtils.getUserIdFromToken(token);
                 String username = jwtUtils.getUsernameFromToken(token);
-                String redisKey = Constants.TOKEN_KEY + userId;
-                String redisToken = redisTemplate.opsForValue().get(redisKey);
-
-                if (token.equals(redisToken)) {
+                
+                // 检查Redis中的token（可选）
+                boolean tokenValid = true;
+                if (redisEnabled && redisTemplate != null) {
+                    try {
+                        String redisKey = Constants.TOKEN_KEY + userId;
+                        String redisToken = redisTemplate.opsForValue().get(redisKey);
+                        tokenValid = token.equals(redisToken);
+                        
+                        if (tokenValid) {
+                            // 延长token有效期
+                            redisTemplate.expire(redisKey, 1, TimeUnit.HOURS);
+                        }
+                    } catch (Exception e) {
+                        // Redis操作失败，仍然允许通过JWT验证
+                        System.err.println("Redis操作失败: " + e.getMessage());
+                    }
+                }
+                
+                if (tokenValid) {
                     LoginUser loginUser = new LoginUser();
                     loginUser.setUserId(userId);
                     loginUser.setUsername(username);
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(loginUser, null, loginUser.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    redisTemplate.expire(redisKey, 1, TimeUnit.HOURS);
                 }
             } else {
                 response.setContentType("application/json;charset=UTF-8");

@@ -27,38 +27,43 @@ public class NcCloudController {
     @Operation(summary = "NC Cloud登录")
     @PostMapping("/login")
     public R<Boolean> login() {
-        return R.ok(ncCloudService.login(), ncCloudService.isTokenValid() ? "登录成功" : "登录失败");
+        boolean result = ncCloudService.login();
+        return R.ok(result);
     }
 
     @Operation(summary = "NC Cloud登出")
     @PostMapping("/logout")
     public R<Void> logout() {
         ncCloudService.logout();
-        return R.ok("已登出");
+        return R.ok();
     }
 
     @Operation(summary = "同步客户到NC Cloud")
     @PostMapping("/customer/sync")
     public R<Boolean> syncCustomer(@RequestBody NcCustomerSyncDTO dto) {
-        return R.ok(ncCloudService.syncCustomer(dto), "客户同步完成");
+        boolean result = ncCloudService.syncCustomer(dto);
+        return R.ok(result);
     }
 
     @Operation(summary = "批量同步客户到NC Cloud")
     @PostMapping("/customer/batchSync")
     public R<Boolean> batchSyncCustomers(@RequestBody List<NcCustomerSyncDTO> dtoList) {
-        return R.ok(ncCloudService.syncBatchCustomers(dtoList), "批量同步完成");
+        boolean result = ncCloudService.syncBatchCustomers(dtoList);
+        return R.ok(result);
     }
 
     @Operation(summary = "同步凭证到NC Cloud")
     @PostMapping("/voucher/sync")
     public R<Boolean> syncVoucher(@RequestBody NcVoucherSyncDTO dto) {
-        return R.ok(ncCloudService.syncVoucher(dto), "凭证同步完成");
+        boolean result = ncCloudService.syncVoucher(dto);
+        return R.ok(result);
     }
 
     @Operation(summary = "批量同步凭证到NC Cloud")
     @PostMapping("/voucher/batchSync")
     public R<Boolean> batchSyncVouchers(@RequestBody List<NcVoucherSyncDTO> dtoList) {
-        return R.ok(ncCloudService.syncBatchVouchers(dtoList), "批量同步完成");
+        boolean result = ncCloudService.syncBatchVouchers(dtoList);
+        return R.ok(result);
     }
 
     @Operation(summary = "查询同步日志")
@@ -81,7 +86,8 @@ public class NcCloudController {
     @Operation(summary = "重试同步")
     @PutMapping("/syncLog/{id}/retry")
     public R<Boolean> retrySync(@PathVariable Long id) {
-        return R.ok(ncCloudService.retrySync(id), "重试完成");
+        boolean result = ncCloudService.retrySync(id);
+        return R.ok(result);
     }
 
     @Operation(summary = "检查客户差异")

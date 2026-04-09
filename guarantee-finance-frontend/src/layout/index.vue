@@ -2,7 +2,7 @@
   <el-container class="layout-container">
     <el-aside :width="isCollapse ? '64px' : '220px'" class="aside">
       <div class="logo">
-        <img src="/vite.svg" alt="logo" />
+        <el-icon class="logo-icon"><Wallet /></el-icon>
         <span v-show="!isCollapse">担保财务系统</span>
       </div>
       <el-menu
@@ -64,6 +64,7 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { Wallet, Fold, Expand } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -111,21 +112,21 @@ async function handleCommand(command: string) {
   overflow: hidden;
 
   .logo {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: #fff;
-    font-size: 16px;
-    font-weight: bold;
-    border-bottom: 1px solid #ffffff1a;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      border-bottom: 1px solid #ffffff1a;
 
-    img {
-      width: 32px;
-      height: 32px;
+      .logo-icon {
+        font-size: 32px;
+        color: #1890ff;
+      }
     }
-  }
 
   .el-menu {
     border-right: none;

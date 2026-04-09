@@ -1,8 +1,5 @@
 package com.guarantee.finance.common;
 
-import lombok.Getter;
-
-@Getter
 public enum ResultCode {
 
     SUCCESS(200, "操作成功"),
@@ -32,5 +29,13 @@ public enum ResultCode {
     ResultCode(int code, String message) {
         this.code = code;
         this.message = message;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }
