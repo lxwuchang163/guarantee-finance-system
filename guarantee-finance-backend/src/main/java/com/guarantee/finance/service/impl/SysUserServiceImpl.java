@@ -500,6 +500,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return count(wrapper) == 0;
     }
 
+    @Override
+    public SysUser getUserByPhone(String phone) {
+        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUser::getPhone, phone);
+        return getOne(wrapper);
+    }
+
     private void saveUserRoles(Long userId, List<Long> roleIds) {
         for (Long roleId : roleIds) {
             SysUserRole userRole = new SysUserRole();

@@ -14,7 +14,17 @@
         router
       >
         <template v-for="item in menuList" :key="item.path">
-          <el-menu-item :index="'/' + item.path">
+          <el-sub-menu v-if="item.children && item.children.length > 0" :index="'/' + item.path">
+            <template #title>
+              <el-icon><component :is="item.meta?.icon || 'Document'" /></el-icon>
+              <span>{{ item.meta?.title }}</span>
+            </template>
+            <el-menu-item v-for="child in item.children" :key="child.path" :index="'/' + child.path">
+              <el-icon><component :is="child.meta?.icon || 'Document'" /></el-icon>
+              <template #title>{{ child.meta?.title }}</template>
+            </el-menu-item>
+          </el-sub-menu>
+          <el-menu-item v-else :index="'/' + item.path">
             <el-icon><component :is="item.meta?.icon || 'Document'" /></el-icon>
             <template #title>{{ item.meta?.title }}</template>
           </el-menu-item>
@@ -83,10 +93,16 @@ const menuList = [
   { path: 'reconciliation', meta: { title: '银行对账', icon: 'Document' } },
   { path: 'bank', meta: { title: '银企直连', icon: 'Link' } },
   { path: 'accounting', meta: { title: '会计平台', icon: 'Notebook' } },
-  { path: 'system/org', meta: { title: '机构管理', icon: 'OfficeBuilding' } },
-  { path: 'system/user', meta: { title: '用户管理', icon: 'User' } },
-  { path: 'system/role', meta: { title: '角色管理', icon: 'UserFilled' } },
-  { path: 'system/menu', meta: { title: '菜单权限', icon: 'Menu' } },
+  {
+    path: 'system/base',
+    meta: { title: '基础管理', icon: 'Setting' },
+    children: [
+      { path: 'system/base/org', meta: { title: '机构管理', icon: 'OfficeBuilding' } },
+      { path: 'system/base/user', meta: { title: '用户管理', icon: 'User' } },
+      { path: 'system/base/role', meta: { title: '角色管理', icon: 'UserFilled' } },
+      { path: 'system/base/menu', meta: { title: '菜单权限', icon: 'Menu' } }
+    ]
+  },
   { path: 'system/process', meta: { title: '审批流程', icon: 'SetUp' } }
 ]
 

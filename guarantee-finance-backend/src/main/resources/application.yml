@@ -81,3 +81,17 @@ nc:
     group-code: GUARANTEE_GROUP
     connect-timeout: 10000
     read-timeout: 30000
+
+# 短信服务配置
+sms:
+  aliyun:
+    access-key-id: your-access-key-id
+    access-key-secret: your-access-key-secret
+    sign-name: your-sign-name
+    template-code: your-template-code
+
+# 微信登录配置
+wechat:
+  app-id: your-app-id
+  app-secret: your-app-secret
+  redirect-uri: https://finance.example.com/api/auth/wechat/callback

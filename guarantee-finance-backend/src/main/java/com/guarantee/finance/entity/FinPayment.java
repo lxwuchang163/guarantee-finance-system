@@ -1,5 +1,6 @@
 package com.guarantee.finance.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.guarantee.finance.common.BaseEntity;
 import lombok.Data;
@@ -31,6 +32,7 @@ public class FinPayment extends BaseEntity {
     private String payeeBankName; // 收款方开户行
     private String payerAccountNo; // 付款方账号
     private String payerBankName; // 付款方开户行
+    @TableField("`usage`")
     private String usage;
     private Long voucherId;
     private String voucherNo;

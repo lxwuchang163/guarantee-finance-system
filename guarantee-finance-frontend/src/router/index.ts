@@ -73,28 +73,35 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '定时任务', icon: 'Timer' }
       },
       {
-        path: 'system/org',
-        name: 'OrgManage',
-        component: () => import('@/views/system/org/index.vue'),
-        meta: { title: '机构管理', icon: 'OfficeBuilding' }
-      },
-      {
-        path: 'system/user',
-        name: 'UserManage',
-        component: () => import('@/views/system/user/index.vue'),
-        meta: { title: '用户管理', icon: 'User' }
-      },
-      {
-        path: 'system/role',
-        name: 'RoleManage',
-        component: () => import('@/views/system/role/index.vue'),
-        meta: { title: '角色管理', icon: 'UserFilled' }
-      },
-      {
-        path: 'system/menu',
-        name: 'MenuManage',
-        component: () => import('@/views/system/menu/index.vue'),
-        meta: { title: '菜单权限', icon: 'Menu' }
+        path: 'system/base',
+        name: 'BaseManagement',
+        meta: { title: '基础管理', icon: 'Setting' },
+        children: [
+          {
+            path: 'org',
+            name: 'OrgManage',
+            component: () => import('@/views/system/org/index.vue'),
+            meta: { title: '机构管理', icon: 'OfficeBuilding' }
+          },
+          {
+            path: 'user',
+            name: 'UserManage',
+            component: () => import('@/views/system/user/index.vue'),
+            meta: { title: '用户管理', icon: 'User' }
+          },
+          {
+            path: 'role',
+            name: 'RoleManage',
+            component: () => import('@/views/system/role/index.vue'),
+            meta: { title: '角色管理', icon: 'UserFilled' }
+          },
+          {
+            path: 'menu',
+            name: 'MenuManage',
+            component: () => import('@/views/system/menu/index.vue'),
+            meta: { title: '菜单权限', icon: 'Menu' }
+          }
+        ]
       },
       {
         path: 'system/process',

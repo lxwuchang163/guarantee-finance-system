@@ -51,4 +51,11 @@ public interface SysUserService extends IService<SysUser> {
     boolean checkUsernameUnique(String username, Long id);
 
     boolean checkPhoneUnique(String phone, Long id);
+
+    /**
+     * 通过手机号获取用户
+     * @param phone 手机号
+     * @return 用户信息
+     */
+    SysUser getUserByPhone(String phone);
 }

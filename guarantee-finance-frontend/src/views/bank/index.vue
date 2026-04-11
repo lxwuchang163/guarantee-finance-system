@@ -32,16 +32,32 @@
         </el-card></el-col>
       </el-row>
 
-      <div class="action-bar" style="margin-top: 16px;">
-        <el-button type="primary" icon="Refresh" @click="handleBatchBalance" :loading="batchLoading">批量查询余额</el-button>
-        <el-button type="success" icon="Download" @click="showDownloadDialog = true">下载流水</el-button>
-        <el-button type="warning" icon="Search" @click="showPaymentDialog = true">查询付款状态</el-button>
-        <el-button type="info" icon="Plus" @click="showAccountDialog = true">新增账户</el-button>
+      <!-- 操作按钮和搜索区域 -->
+      <div class="action-search-container">
+        <div class="action-bar">
+          <el-button type="primary" icon="Refresh" @click="handleBatchBalance" :loading="batchLoading">批量查询余额</el-button>
+          <el-button type="success" icon="Download" @click="showDownloadDialog = true">下载流水</el-button>
+          <el-button type="warning" icon="Search" @click="showPaymentDialog = true">查询付款状态</el-button>
+          <el-button type="info" icon="Plus" @click="showAccountDialog = true">新增账户</el-button>
+        </div>
+
+        <!-- 搜索 -->
+        <div class="search-area">
+          <el-form :inline="true" :model="queryParams" class="search-form">
+            <el-form-item label="银行账号"><el-input v-model="queryParams.accountNo" placeholder="请输入银行账号" clearable style="width: 180px" /></el-form-item>
+            <el-form-item label="状态">
+              <el-select v-model="queryParams.status" clearable placeholder="请选择" style="width: 110px">
+                <el-option :value="1" label="正常" /><el-option :value="0" label="异常" />
+              </el-select>
+            </el-form-item>
+            <el-form-item><el-button type="primary" icon="Search" @click="loadAccounts">搜索</el-button><el-button icon="Refresh" @click="resetQuery">重置</el-button></el-form-item>
+          </el-form>
+        </div>
       </div>
 
       <!-- 账户列表 -->
-      <el-table :data="accountList" stripe border v-loading="tableLoading" size="small" style="margin-top: 12px;">
-        <el-table-column prop="accountNo" label="银行账号" width="180" />
+      <el-table :data="accountList" stripe border v-loading="tableLoading">
+        <el-table-column prop="accountNo" label="银行账号" width="180" fixed="left" />
         <el-table-column prop="accountName" label="账户名称" width="160" />
         <el-table-column prop="bankName" label="开户行" width="160" />
         <el-table-column prop="balance" label="账户余额" width="140" align="right">
@@ -58,7 +74,7 @@
             <el-tag :type="row.apiStatus === 1 ? 'success' : 'danger'" size="small">{{ row.apiStatus === 1 ? '正常' : '异常' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleQueryBalance(row.accountNo)" :loading="row._loading">查询余额</el-button>
             <el-button type="warning" link size="small" @click="handleEditAccount(row)">编辑</el-button>
@@ -66,6 +82,10 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="pagination-wrapper">
+        <el-pagination v-model:current-page="queryPage.current" v-model:page-size="queryPage.size" :page-sizes="[10,20,50]" :total="total" layout="total, sizes, prev, pager, next, jumper" background @size-change="loadAccounts" @current-change="loadAccounts" />
+      </div>
     </el-card>
 
     <!-- 新增/编辑账户对话框 -->
@@ -148,6 +168,10 @@ const showPaymentDialog = ref(false)
 const editMode = ref(false)
 const paymentNoInput = ref('')
 
+const queryParams = reactive({ accountNo: '', status: null as number | null })
+const queryPage = reactive({ current: 1, size: 10 })
+const total = ref(0)
+
 const accountFormRef = ref()
 const accountForm = reactive({
   id: undefined as number | undefined,
@@ -170,7 +194,21 @@ const loadAccounts = async () => {
   tableLoading.value = true
   try {
     const res = await getBankAccountList()
-    accountList.value = res.data.map((a: BankAccountConfigVO) => ({ ...a, _loading: false }))
+    let accounts = res.data.map((a: BankAccountConfigVO) => ({ ...a, _loading: false }))
+    
+    // 应用搜索过滤
+    if (queryParams.accountNo) {
+      accounts = accounts.filter(a => a.accountNo.includes(queryParams.accountNo))
+    }
+    if (queryParams.status !== null) {
+      accounts = accounts.filter(a => a.apiStatus === queryParams.status)
+    }
+    
+    // 应用分页
+    const start = (queryPage.current - 1) * queryPage.size
+    const end = start + queryPage.size
+    accountList.value = accounts.slice(start, end)
+    total.value = accounts.length
   } catch (e) { console.error(e) }
   finally { tableLoading.value = false }
 }
@@ -246,6 +284,8 @@ const handleCheckPayment = async () => {
 
 const handleRefresh = () => loadAccounts()
 
+const resetQuery = () => { Object.assign(queryParams, { accountNo: '', status: null }); queryPage.current = 1; loadAccounts() }
+
 const formatMoney = (n: number) => n?.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'
 
 onMounted(() => loadAccounts())
@@ -259,5 +299,9 @@ onMounted(() => loadAccounts())
   .stat-value { font-size: 24px; font-weight: bold; color: #303133; }
   .stat-label { font-size: 13px; color: #909399; margin-top: 2px; }
 }
-.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.action-search-container { margin-top: 16px; }
+.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.search-area { margin-bottom: 16px; }
+.search-form .el-form-item { margin-bottom: 12px; }
+.pagination-wrapper { margin-top: 16px; display: flex; justify-content: flex-end; }
 </style>

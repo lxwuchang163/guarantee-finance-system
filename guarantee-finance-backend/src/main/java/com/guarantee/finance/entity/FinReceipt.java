@@ -1,5 +1,6 @@
 package com.guarantee.finance.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.guarantee.finance.common.BaseEntity;
 import lombok.Data;
@@ -32,6 +33,7 @@ public class FinReceipt extends BaseEntity {
     private String payerBankName; // 付款方开户行
     private String payeeAccountNo; // 收款方账号
     private String payeeBankName; // 收款方开户行
+    @TableField("`usage`")
     private String usage; // 用途/摘要
     private Long voucherId; // 关联凭证ID
     private String voucherNo; // 凭证号

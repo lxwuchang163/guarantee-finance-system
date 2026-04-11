@@ -1,5 +1,6 @@
 package com.guarantee.finance.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.guarantee.finance.common.BaseEntity;
 import lombok.Data;
@@ -16,4 +17,7 @@ public class ProcessNode extends BaseEntity {
     private String approverType; // role/user/specific
     private String approverValue; // 角色编码或用户ID
     private Integer sortOrder;
+    
+    @TableField(exist = false)
+    private String remark;
 }

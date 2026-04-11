@@ -33,25 +33,39 @@
       </el-row>
 
       <!-- 搜索和操作区 -->
-      <div class="action-bar" style="margin-top: 16px;">
-        <el-upload action="" :auto-upload="false" :show-file-list="false" accept=".xlsx,.xls,.csv" :on-change="handleFileChange">
-          <el-button type="primary" icon="Upload">导入银行流水</el-button>
-        </el-upload>
-        <el-button type="success" icon="MagicStick" @click="handleAutoReconcile" :loading="reconciling">自动对账</el-button>
-        <el-input v-model="query.bankAccountNo" placeholder="银行账号" clearable style="width: 180px;" />
-        <el-select v-model="query.direction" placeholder="收支方向" clearable style="width: 120px;">
-          <el-option :value="1" label="收入" /><el-option :value="2" label="支出" />
-        </el-select>
-        <el-select v-model="query.matchStatus" placeholder="匹配状态" clearable style="width: 120px;">
-          <el-option :value="0" label="未匹配" /><el-option :value="1" label="精确匹配" /><el-option :value="2" label="模糊匹配" /><el-option :value="3" label="异常" />
-        </el-select>
-        <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 260px;" />
-        <el-button icon="Search" @click="loadData">查询</el-button>
+      <div class="search-area">
+        <el-form :inline="true" :model="query" class="search-form">
+          <el-form-item label="银行账号"><el-input v-model="query.bankAccountNo" placeholder="银行账号" clearable style="width: 180px;" /></el-form-item>
+          <el-form-item label="收支方向">
+            <el-select v-model="query.direction" clearable placeholder="请选择" style="width: 120px;">
+              <el-option :value="1" label="收入" /><el-option :value="2" label="支出" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="匹配状态">
+            <el-select v-model="query.matchStatus" clearable placeholder="请选择" style="width: 120px;">
+              <el-option :value="0" label="未匹配" /><el-option :value="1" label="精确匹配" /><el-option :value="2" label="模糊匹配" /><el-option :value="3" label="异常" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="日期范围">
+            <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 260px;" />
+          </el-form-item>
+          <el-form-item>
+            <el-upload action="" :auto-upload="false" :show-file-list="false" accept=".xlsx,.xls,.csv" :on-change="handleFileChange">
+              <el-button type="primary" icon="Upload">导入银行流水</el-button>
+            </el-upload>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="success" icon="MagicStick" @click="handleAutoReconcile" :loading="reconciling">自动对账</el-button>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="Search" @click="loadData">查询</el-button>
+          </el-form-item>
+        </el-form>
       </div>
 
       <!-- 流水表格 -->
-      <el-table :data="transactionList" stripe border v-loading="tableLoading" size="small" style="margin-top: 12px;">
-        <el-table-column prop="transactionDate" label="交易日期" width="110" />
+      <el-table :data="transactionList" stripe border v-loading="tableLoading">
+        <el-table-column prop="transactionDate" label="交易日期" width="110" fixed="left" />
         <el-table-column prop="bankAccountNo" label="银行账号" width="150" />
         <el-table-column prop="direction" label="方向" width="70" align="center">
           <template #default="{ row }"><el-tag :type="row.direction === 1 ? 'success' : 'danger'" size="small">{{ row.direction === 1 ? '收' : '付' }}</el-tag></template>
@@ -68,7 +82,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="matchedBillNo" label="关联单号" width="140" show-overflow-tooltip />
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.matchStatus === 0 || row.matchStatus === 2" type="primary" link size="small" @click="handleForceMatch(row)">手工匹配</el-button>
           </template>
@@ -205,6 +219,7 @@ onMounted(() => loadData())
   .stat-value { font-size: 24px; font-weight: bold; color: #303133; }
   .stat-label { font-size: 13px; color: #909399; margin-top: 2px; }
 }
-.action-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.search-area { margin-bottom: 16px; }
+.search-form .el-form-item { margin-bottom: 12px; }
 .pagination-wrapper { margin-top: 16px; display: flex; justify-content: flex-end; }
 </style>
