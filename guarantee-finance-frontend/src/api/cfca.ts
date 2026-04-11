@@ -7,7 +7,7 @@ export interface CfcaCertificateVO {
   certIssuer: string
   validFrom: string
   validTo: string
-  status: number // 0-已过期 1-正常 2-已吊销 3-待更新
+  status: number
   statusText?: string
   keyLength: number
   algorithm: string
@@ -25,7 +25,7 @@ export interface CfcaSignDTO {
   paymentId: number
   paymentNo: string
   amount: number
-  signLevel: number // 1-单签 2-双签 3-三签+审批
+  signLevel: number
 }
 
 export interface CfcaSignResult {
@@ -36,21 +36,21 @@ export interface CfcaSignResult {
 }
 
 export function getCertificateList() {
-  return request.get<CfcaCertificateVO[]>('/api/cfca/certificates')
+  return request.get<CfcaCertificateVO[]>('/cfca/certificates')
 }
 
 export function signPayment(data: CfcaSignDTO) {
-  return request.post<CfcaSignResult>('/api/cfca/sign', data)
+  return request.post<boolean>('/cfca/sign', data)
 }
 
-export function verifySignature(signatureData: string) {
-  return request.post<boolean>('/api/cfca/verify', { signatureData })
+export function verifySignature(data: string, signature: string) {
+  return request.post<boolean>('/cfca/verify', null, { params: { data, signature } })
 }
 
 export function checkCertExpiry() {
-  return request.get('/api/cfca/expiry-check')
+  return request.get('/cfca/expiry/check')
 }
 
 export function refreshCerts() {
-  return request.put('/api/cfca/refresh')
+  return request.post('/cfca/expiry/refresh')
 }

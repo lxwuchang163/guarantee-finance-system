@@ -18,7 +18,7 @@ import java.util.Map;
 
 @Tag(name = "用友NC Cloud对接")
 @RestController
-@RequestMapping("/api/nc")
+@RequestMapping("/nc")
 public class NcCloudController {
 
     @Autowired

@@ -73,37 +73,37 @@ export function getReceiptPage(params: {
   status?: number | null; startDate?: string; endDate?: string;
   current: number; size: number
 }) {
-  return request.get('/api/receipt/page', { params })
+  return request.get('/receipt/page', { params })
 }
 
 export function getReceiptDetail(id: number) {
-  return request.get<ReceiptVO>(`/api/receipt/${id}`)
+  return request.get<ReceiptVO>(`/receipt/${id}`)
 }
 
 export function createReceipt(data: ReceiptDTO) {
-  return request.post<number>('/api/receipt', data)
+  return request.post<number>('/receipt', data)
 }
 
 export function updateReceipt(data: ReceiptDTO) {
-  return request.put('/api/receipt', data)
+  return request.put('/receipt', data)
 }
 
 export function deleteReceipt(id: number) {
-  return request.delete(`/api/receipt/${id}`)
+  return request.delete(`/receipt/${id}`)
 }
 
 export function submitReceipt(id: number) {
-  return request.put(`/api/receipt/${id}/submit`)
+  return request.put(`/receipt/${id}/submit`)
 }
 
 export function auditReceipt(id: number, pass: boolean) {
-  return request.put(`/api/receipt/${id}/audit`, null, { params: { pass } })
+  return request.put(`/receipt/${id}/audit`, null, { params: { pass } })
 }
 
 export function postReceipt(id: number) {
-  return request.put(`/api/receipt/${id}/post`)
+  return request.put(`/receipt/${id}/post`)
 }
 
 export function reverseReceipt(id: number) {
-  return request.put(`/api/receipt/${id}/reverse`)
+  return request.put(`/receipt/${id}/reverse`)
 }

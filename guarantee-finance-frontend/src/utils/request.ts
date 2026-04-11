@@ -26,9 +26,9 @@ request.interceptors.response.use(
     const res = response.data
     if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
-      if (res.code === 401) {
+      if (res.code === 401 || res.code === 403) {
         const userStore = useUserStore()
-        userStore.logout()
+        userStore.resetState()
         router.push('/login')
       }
       return Promise.reject(new Error(res.message || '请求失败'))
@@ -36,7 +36,20 @@ request.interceptors.response.use(
     return res
   },
   (error) => {
-    ElMessage.error(error.message || '网络错误')
+    const status = error.response?.status
+    if (status === 401) {
+      ElMessage.error('登录已过期，请重新登录')
+      const userStore = useUserStore()
+      userStore.resetState()
+      router.push('/login')
+    } else if (status === 403) {
+      ElMessage.error('没有访问权限，请重新登录')
+      const userStore = useUserStore()
+      userStore.resetState()
+      router.push('/login')
+    } else {
+      ElMessage.error(error.message || '网络错误')
+    }
     return Promise.reject(error)
   }
 )

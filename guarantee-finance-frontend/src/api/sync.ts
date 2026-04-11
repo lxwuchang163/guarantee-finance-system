@@ -39,21 +39,21 @@ export interface PageResult<T> {
 
 // 客户相关
 export function getCustomerPage(params: { keyword?: string; customerType?: number | null; status?: number | null; current: number; size: number }) {
-  return request.get<PageResult<CustomerVO>>('/api/sync/customer/page', { params })
+  return request.get<PageResult<CustomerVO>>('/sync/customer/page', { params })
 }
 
 export function getCustomerDetail(id: number) {
-  return request.get<CustomerVO>(`/api/sync/customer/${id}`)
+  return request.get<CustomerVO>(`/sync/customer/${id}`)
 }
 
 export function syncCustomerFull() {
-  return request.post<SyncResult>('/api/sync/customer/full')
+  return request.post<SyncResult>('/sync/customer/full')
 }
 
 export function syncCustomerIncremental(lastSyncTime = '') {
-  return request.post<SyncResult>('/api/sync/customer/incremental', null, { params: { lastSyncTime } })
+  return request.post<SyncResult>('/sync/customer/incremental', null, { params: { lastSyncTime } })
 }
 
 export function checkCustomerCode(code: string, id?: number) {
-  return request.get<boolean>('/api/sync/customer/checkCode', { params: { code, id } })
+  return request.get<boolean>('/sync/customer/checkCode', { params: { code, id } })
 }

@@ -188,7 +188,7 @@ const dialogType = ref('add')
 const formRef = ref()
 const currentId = ref(0)
 
-const searchForm = reactive({
+const searchForm = reactive<Record<string, any>>({
   subjectCode: '',
   subjectName: '',
   status: undefined
@@ -200,10 +200,10 @@ const pageInfo = reactive({
 })
 
 const total = ref(0)
-const subjects = ref([])
-const subjectOptions = ref([])
+const subjects = ref<any[]>([])
+const subjectOptions = ref<any[]>([])
 
-const formData = reactive({
+const formData = reactive<Record<string, any>>({
   subjectCode: '',
   subjectName: '',
   subjectLevel: 1,
@@ -299,11 +299,12 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid: boolean) => {
     if (valid) {
       try {
+        const submitData = formData as any
         if (dialogType.value === 'add') {
-          await subjectApi.createSubject(formData)
+          await subjectApi.createSubject(submitData)
           ElMessage.success('新增科目成功')
         } else {
-          await subjectApi.updateSubject(currentId.value, formData)
+          await subjectApi.updateSubject(currentId.value, submitData)
           ElMessage.success('编辑科目成功')
         }
         dialogVisible.value = false

@@ -324,7 +324,7 @@ public class NcCloudServiceImpl extends ServiceImpl<NcSyncLogMapper, NcSyncLog> 
 
     private void updateSyncResult(NcSyncLog syncLog, int status, String errorMsg, String ncResponse, long durationMs) {
         syncLog.setStatus(status);
-        syncLog.setErrorMsg(errorMsg);
+        syncLog.setErrorMessage(errorMsg);
         syncLog.setNcResponse(ncResponse);
         syncLog.setDurationMs(durationMs);
         updateById(syncLog);

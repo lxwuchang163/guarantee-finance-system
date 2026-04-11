@@ -62,7 +62,7 @@
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleQueryBalance(row.accountNo)" :loading="row._loading">查询余额</el-button>
             <el-button type="warning" link size="small" @click="handleEditAccount(row)">编辑</el-button>
-            <el-button type="success" link size="small" @click="handleRefresh(row)">刷新</el-button>
+            <el-button type="success" link size="small" @click="handleRefresh()">刷新</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -193,12 +193,13 @@ const handleQueryBalance = async (accountNo: string) => {
 const handleBatchBalance = async () => {
   batchLoading.value = true
   try {
-    const res = await batchQueryBalances()
+    const accountNos = accountList.value.map(a => a.accountNo)
+    const res = await batchQueryBalances(accountNos)
     res.data.forEach((b: any) => {
       const acc = accountList.value.find(a => a.accountNo === b.accountNo)
       if (acc) { acc.balance = b.balance; acc.availableBalance = b.availableBalance }
     })
-    ElMessage.success('批量查询余额完成')
+    ElMessage.success('批量查询余额成功')
   } catch (e: any) { ElMessage.error(e.message || '批量查询失败') }
   finally { batchLoading.value = false }
 }
@@ -235,7 +236,8 @@ const handleCheckPayment = async () => {
   if (!paymentNoInput.value) { ElMessage.warning('请输入付款单号'); return }
   checking.value = true
   try {
-    const res = await checkPaymentStatus(paymentNoInput.value)
+    const bankCode = accountList.value[0]?.bankCode || ''
+    const res = await checkPaymentStatus(bankCode, paymentNoInput.value)
     ElMessage.success(res.data ? '付款已到账' : '付款未到账或处理中')
     showPaymentDialog.value = false
   } catch (e: any) { ElMessage.error(e.message || '查询失败') }

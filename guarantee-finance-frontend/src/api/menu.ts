@@ -39,3 +39,19 @@ export function getDataScope(roleId: number) {
 export function setDataScope(data: { roleId: number; dataScope: string; orgCodes?: string[] }) {
   return request.put('/system/menu/dataScope', data)
 }
+
+export function addMenu(menu: any) {
+  return request.post<number>('/system/menu', menu)
+}
+
+export function updateMenu(menu: any) {
+  return request.put('/system/menu', menu)
+}
+
+export function deleteMenu(menuId: number) {
+  return request.delete(`/system/menu/${menuId}`)
+}
+
+export function getMenu(menuId: number) {
+  return request.get<any>(`/system/menu/${menuId}`)
+}

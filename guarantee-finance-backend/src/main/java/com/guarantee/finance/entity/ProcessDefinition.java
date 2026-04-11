@@ -1,6 +1,7 @@
 package com.guarantee.finance.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.guarantee.finance.common.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -17,7 +18,7 @@ public class ProcessDefinition extends BaseEntity {
     private Integer status; // 0-禁用 1-启用
     private Integer version;
     private String description;
-    
-    // 非数据库字段
+
+    @TableField(exist = false)
     private List<ProcessNode> nodes;
 }

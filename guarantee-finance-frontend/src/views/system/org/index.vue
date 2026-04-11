@@ -269,20 +269,26 @@
     </el-dialog>
 
     <!-- 右键菜单 -->
-    <context-menu
+    <el-dropdown
       v-show="contextMenuVisible"
-      :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
-      @close="contextMenuVisible = false"
+      trigger="contextmenu"
+      :style="{ position: 'fixed', left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+      @command="handleContextMenuCommand"
     >
-      <context-menu-item @click="handleContextMenuAdd">新增子节点</context-menu-item>
-      <context-menu-item @click="handleContextMenuEdit">编辑</context-menu-item>
-      <context-menu-item divided @click="handleContextMenuDelete">删除</context-menu-item>
-    </context-menu>
+      <span></span>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item command="add">新增子节点</el-dropdown-item>
+          <el-dropdown-item command="edit">编辑</el-dropdown-item>
+          <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Check, Download, UploadFilled, CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue'
 import {
@@ -295,7 +301,8 @@ import {
   moveOrgNode,
   importOrgs,
   downloadTemplate,
-  checkOrgCode
+  checkOrgCode,
+  exportOrgs
 } from '@/api/org'
 import type { OrgVO, OrgTreeVO, OrgDTO } from '@/api/org'
 
@@ -663,6 +670,20 @@ const collapseAllNodes = () => {
 }
 
 // 右键菜单操作
+const handleContextMenuCommand = (command: string) => {
+  switch (command) {
+    case 'add':
+      handleContextMenuAdd()
+      break
+    case 'edit':
+      handleContextMenuEdit()
+      break
+    case 'delete':
+      handleContextMenuDelete()
+      break
+  }
+}
+
 const handleContextMenuAdd = () => {
   if (contextMenuNode.value) {
     handleAdd(contextMenuNode.value.data)

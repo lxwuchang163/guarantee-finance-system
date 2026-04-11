@@ -48,53 +48,53 @@ export interface ScheduleTaskConfigVO {
 }
 
 export function getScheduleDashboard() {
-  return request.get<{ totalJobs: number; runningJobs: number; pausedJobs: number; todaySuccess: number; todayFail: number; recentLogs: any[] }>('/api/schedule/dashboard')
+  return request.get<{ totalJobs: number; runningJobs: number; pausedJobs: number; todaySuccess: number; todayFail: number; recentLogs: any[] }>('/schedule/dashboard')
 }
 
 export function getJobPage(params: {
   jobName?: string; status?: string; current: number; size: number
 }) {
-  return request.get('/api/schedule/job/list', { params })
+  return request.get('/schedule/job/list', { params })
 }
 
 export function getJobDetail(id: number) {
-  return request.get<ScheduleJobVO>(`/api/schedule/job/${id}`)
+  return request.get<ScheduleJobVO>(`/schedule/job/${id}`)
 }
 
 export function createJob(data: Partial<ScheduleJobVO>) {
-  return request.post<number>('/api/schedule/job', data)
+  return request.post<number>('/schedule/job', data)
 }
 
 export function updateJob(data: Partial<ScheduleJobVO>) {
-  return request.put('/api/schedule/job', data)
+  return request.put('/schedule/job', data)
 }
 
 export function deleteJob(id: number) {
-  return request.delete(`/api/schedule/job/${id}`)
+  return request.delete(`/schedule/job/${id}`)
 }
 
 export function changeJobStatus(id: number, status: string) {
-  return request.put(`/api/schedule/job/${id}/status`, null, { params: { status } })
+  return request.put(`/schedule/job/${id}/status`, null, { params: { status } })
 }
 
 export function executeOnce(id: number) {
-  return request.post(`/api/schedule/job/${id}/execute`)
+  return request.post(`/schedule/job/${id}/execute`)
 }
 
 export function getLogPage(params: {
   jobId?: number; status?: number | null; current: number; size: number
 }) {
-  return request.get('/api/schedule/log/list', { params })
+  return request.get('/schedule/log/list', { params })
 }
 
 export function getBuiltInTasks() {
-  return request.get<ScheduleTaskConfigVO[]>('/api/schedule/built-in/tasks')
+  return request.get<ScheduleTaskConfigVO[]>('/schedule/built-in/tasks')
 }
 
 export function updateBuiltInTask(taskCode: string, cronExpression?: string, status?: string) {
-  return request.put(`/api/schedule/built-in/task/${taskCode}/config`, null, { params: { cronExpression, status } })
+  return request.put(`/schedule/built-in/task/${taskCode}/config`, null, { params: { cronExpression, status } })
 }
 
 export function initBuiltInTasks() {
-  return request.post('/api/schedule/built-in/init')
+  return request.post('/schedule/built-in/init')
 }

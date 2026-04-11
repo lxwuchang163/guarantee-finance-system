@@ -18,6 +18,8 @@ public interface BankReconciliationService {
 
     Map<String, Object> getReconciliationResult(String accountNo, LocalDate date);
 
+    IPage<com.guarantee.finance.entity.BankReconciliation> queryReconciliationResults(String accountNo, LocalDate startDate, LocalDate endDate, Page<?> page);
+
     void forceMatch(Long transactionId, Long billId, String billType);
 
     Map<String, Object> generateBalanceAdjustment(String accountNo, LocalDate date);

@@ -276,7 +276,7 @@ const dialogType = ref('add')
 const formRef = ref()
 const currentId = ref(0)
 
-const searchForm = reactive({
+const searchForm = reactive<Record<string, any>>({
   voucherNo: '',
   period: '',
   voucherDate: '',
@@ -289,8 +289,8 @@ const pageInfo = reactive({
 })
 
 const total = ref(0)
-const vouchers = ref([])
-const subjectOptions = ref([])
+const vouchers = ref<any[]>([])
+const subjectOptions = ref<any[]>([])
 
 const formData = reactive({
   voucherNo: '',

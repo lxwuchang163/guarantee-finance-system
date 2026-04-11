@@ -2,6 +2,8 @@ package com.guarantee.finance.config;
 
 import com.guarantee.finance.common.R;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,9 +13,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public R<?> handleAccessDeniedException(AccessDeniedException e) {
+        log.warn("访问被拒绝: {}", e.getMessage());
+        return R.fail(403, "没有访问权限，请登录后重试");
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public R<?> handleAuthenticationException(AuthenticationException e) {
+        log.warn("认证失败: {}", e.getMessage());
+        return R.fail(401, "认证失败: " + e.getMessage());
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public R<?> handleRuntimeException(RuntimeException e) {
-        log.error("运行时异常: {}", e.getMessage(), e);
+        log.error("运行时异常 [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         return R.fail(e.getMessage());
     }
 
@@ -41,7 +55,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public R<?> handleException(Exception e) {
-        log.error("系统异常: {}", e.getMessage(), e);
-        return R.fail("系统内部错误，请联系管理员");
+        String exClass = e.getClass().getSimpleName();
+        String msg = e.getMessage();
+        if (msg != null && msg.length() > 200) {
+            msg = msg.substring(0, 200) + "...";
+        }
+        log.error("系统异常 [{}]: {}", exClass, msg, e);
+        return R.fail(500, "系统内部错误 [" + exClass + "]: " + msg);
     }
 }

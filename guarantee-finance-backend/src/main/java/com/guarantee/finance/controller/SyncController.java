@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "基础信息同步")
 @RestController
-@RequestMapping("/api/sync")
+@RequestMapping("/sync")
 public class SyncController {
 
     @Autowired
@@ -41,14 +41,14 @@ public class SyncController {
     @PostMapping("/customer/full")
     public R<Void> syncCustomerFull() {
         bizCustomerService.syncAll();
-        return R.ok("全量同步任务已提交");
+        return R.ok("全量同步任务已提交", null);
     }
 
     @Operation(summary = "增量同步客户信息")
     @PostMapping("/customer/incremental")
     public R<Void> syncCustomerIncremental(@RequestParam(defaultValue = "") String lastSyncTime) {
         bizCustomerService.syncIncremental(lastSyncTime);
-        return R.ok("增量同步任务已提交");
+        return R.ok("增量同步任务已提交", null);
     }
 
     @Operation(summary = "检查客户编码唯一性")

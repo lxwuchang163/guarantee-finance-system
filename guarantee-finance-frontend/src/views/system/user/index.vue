@@ -332,6 +332,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download, UploadFilled } from '@element-plus/icons-vue'
 import {
   getUserPage,
+  getUserDetail,
   addUser,
   updateUser,
   deleteUser,
@@ -340,11 +341,11 @@ import {
   importUsers as importUsersApi,
   downloadUserTemplate,
   getOnlineUsers,
-  forceLogout,
-  getOrgTree as getOrgTreeApi
+  forceLogout
 } from '@/api/user'
+import { getOrgTree as getOrgTreeApi } from '@/api/org'
 import { getAllRoles } from '@/api/role'
-import type { UserVO, UserDTO, OnlineUserVO, RoleSimpleVO } from '@/api/user'
+import type { UserVO, UserDTO, OnlineUserVO, RoleSimpleVO, UserQueryDTO } from '@/api/user'
 
 const formRef = ref()
 const loading = ref(false)
@@ -370,8 +371,12 @@ const importDialogVisible = ref(false)
 const onlineDialogVisible = ref(false)
 const onlineUsers = ref<OnlineUserVO[]>([])
 
-// 表单数据
-const formData = ref<UserDTO>({
+// 表单数据类型
+interface UserFormData extends UserDTO {
+  confirmPassword?: string
+}
+
+const formData = ref<UserFormData>({
   username: '',
   password: '',
   confirmPassword: '',

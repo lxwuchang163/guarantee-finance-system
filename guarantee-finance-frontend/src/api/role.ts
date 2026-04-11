@@ -58,6 +58,13 @@ export interface PageResult<T> {
   pages: number
 }
 
+export interface MenuTreeVO {
+  id: number
+  menuName: string
+  menuType: number
+  children?: MenuTreeVO[]
+}
+
 export function getAllRoles() {
   return request.get<RoleSimpleVO[]>('/system/role/list')
 }
@@ -104,4 +111,8 @@ export function checkRoleCode(code: string, id?: number) {
   return request.get<boolean>('/system/role/checkCode', {
     params: { code, id }
   })
+}
+
+export function getMenuTree() {
+  return request.get<MenuTreeVO[]>('/system/menu/tree')
 }

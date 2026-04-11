@@ -17,7 +17,7 @@ import java.time.LocalDate;
 
 @Tag(name = "收款单管理")
 @RestController
-@RequestMapping("/api/receipt")
+@RequestMapping("/receipt")
 public class ReceiptController {
 
     @Autowired
@@ -47,48 +47,48 @@ public class ReceiptController {
     @Operation(summary = "新增收款单")
     @PostMapping
     public R<Long> create(@RequestBody ReceiptDTO dto) {
-        return R.ok(finReceiptService.create(dto), "创建成功");
+        return R.ok("创建成功", finReceiptService.create(dto));
     }
 
     @Operation(summary = "修改收款单")
     @PutMapping
     public R<Void> update(@RequestBody ReceiptDTO dto) {
         finReceiptService.update(dto);
-        return R.ok("修改成功");
+        return R.ok("修改成功", null);
     }
 
     @Operation(summary = "删除收款单")
     @DeleteMapping("/{id}")
     public R<Void> delete(@PathVariable Long id) {
         finReceiptService.delete(id);
-        return R.ok("删除成功");
+        return R.ok("删除成功", null);
     }
 
     @Operation(summary = "提交审核")
     @PutMapping("/{id}/submit")
     public R<Void> submit(@PathVariable Long id) {
         finReceiptService.submit(id);
-        return R.ok("已提交审核");
+        return R.ok("已提交审核", null);
     }
 
     @Operation(summary = "审核通过/驳回")
     @PutMapping("/{id}/audit")
     public R<Void> audit(@PathVariable Long id, @RequestParam boolean pass) {
         finReceiptService.audit(id, pass);
-        return R.ok(pass ? "审核通过" : "已驳回");
+        return R.ok(pass ? "审核通过" : "已驳回", null);
     }
 
     @Operation(summary = "记账")
     @PutMapping("/{id}/post")
     public R<Void> post(@PathVariable Long id) {
         finReceiptService.post(id);
-        return R.ok("记账成功");
+        return R.ok("记账成功", null);
     }
 
     @Operation(summary = "冲销/作废")
     @PutMapping("/{id}/reverse")
     public R<Void> reverse(@PathVariable Long id) {
         finReceiptService.reverse(id);
-        return R.ok("冲销成功");
+        return R.ok("冲销成功", null);
     }
 }

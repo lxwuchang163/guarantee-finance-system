@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>审批流程管理</span>
-          <el-button type="primary" icon="Plus" @click="handleAdd">新增流程</button>
+          <el-button type="primary" icon="Plus" @click="handleAdd">新增流程</el-button>
         </div>
       </template>
 
@@ -261,7 +261,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getProcessDefinitionList,
@@ -325,7 +325,11 @@ const formRules = {
 const approveAction = ref<'approve' | 'reject'>('approve')
 const currentInstance = ref<ProcessInstanceVO | null>(null)
 const approveForm = reactive({ opinion: '' })
-const approveRules = {}
+const approveRules = computed(() => ({
+  opinion: approveAction.value === 'reject' 
+    ? [{ required: true, message: '请输入驳回原因', trigger: 'blur' }] 
+    : []
+}))
 
 // 详情
 const detailData = ref<ProcessInstanceVO | null>(null)

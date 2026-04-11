@@ -148,6 +148,16 @@ public class BankReconciliationServiceImpl implements BankReconciliationService 
     }
 
     @Override
+    public IPage<BankReconciliation> queryReconciliationResults(String accountNo, LocalDate startDate, LocalDate endDate, Page<?> page) {
+        LambdaQueryWrapper<BankReconciliation> wrapper = new LambdaQueryWrapper<>();
+        if (StrUtil.isNotBlank(accountNo)) wrapper.eq(BankReconciliation::getAccountNo, accountNo);
+        if (startDate != null) wrapper.ge(BankReconciliation::getReconciliationDate, startDate);
+        if (endDate != null) wrapper.le(BankReconciliation::getReconciliationDate, endDate);
+        wrapper.orderByDesc(BankReconciliation::getCreateTime);
+        return reconciliationMapper.selectPage(page.convert(p -> new BankReconciliation()), wrapper);
+    }
+
+    @Override
     public void forceMatch(Long transactionId, Long billId, String billType) {
         BankTransaction tx = transactionMapper.selectById(transactionId);
         if (tx == null) throw new RuntimeException("银行流水不存在");
@@ -187,6 +197,6 @@ public class BankReconciliationServiceImpl implements BankReconciliationService 
     private String getString(Map<String, Object> map, String key) { return getString(map, key, null); }
     private String getString(Map<String, Object> map, String key, String def) { Object v = map.get(key); return v != null ? v.toString() : def; }
     private Integer getInt(Map<String, Object> map, String key) { Object v = map.get(key); return v instanceof Number ? ((Number) v).intValue() : null; }
-    private BigDecimal getBigDecimal(Map<String, Object> map, String key) { Object v = map.get(key); return v instanceof Number ? BigDecimal.valueOf(v.toString()) : null; }
+    private BigDecimal getBigDecimal(Map<String, Object> map, String key) { Object v = map.get(key); return v instanceof Number ? BigDecimal.valueOf(((Number) v).doubleValue()) : null; }
     private LocalDate parseLocalDate(String s) { try { return s != null ? LocalDate.parse(s) : null; } catch (Exception e) { return null; } }
 }

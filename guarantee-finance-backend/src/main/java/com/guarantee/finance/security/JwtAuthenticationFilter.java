@@ -7,19 +7,23 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Autowired
     private JwtUtils jwtUtils;
@@ -29,53 +33,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private ObjectMapper objectMapper;
-    
-    private boolean redisEnabled = false;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = getToken(request);
+        String requestUri = request.getRequestURI();
 
         if (StringUtils.hasText(token)) {
-            if (jwtUtils.validateToken(token)) {
-                Long userId = jwtUtils.getUserIdFromToken(token);
-                String username = jwtUtils.getUsernameFromToken(token);
-                
-                // 检查Redis中的token（可选）
-                boolean tokenValid = true;
-                if (redisEnabled && redisTemplate != null) {
-                    try {
-                        String redisKey = Constants.TOKEN_KEY + userId;
-                        String redisToken = redisTemplate.opsForValue().get(redisKey);
-                        tokenValid = token.equals(redisToken);
-                        
-                        if (tokenValid) {
-                            // 延长token有效期
-                            redisTemplate.expire(redisKey, 1, TimeUnit.HOURS);
-                        }
-                    } catch (Exception e) {
-                        // Redis操作失败，仍然允许通过JWT验证
-                        System.err.println("Redis操作失败: " + e.getMessage());
-                    }
-                }
-                
-                if (tokenValid) {
+            try {
+                if (jwtUtils.validateToken(token)) {
+                    Long userId = jwtUtils.getUserIdFromToken(token);
+                    String username = jwtUtils.getUsernameFromToken(token);
+
                     LoginUser loginUser = new LoginUser();
                     loginUser.setUserId(userId);
                     loginUser.setUsername(username);
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(loginUser, null, loginUser.getAuthorities());
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    loginUser.setStatus(1);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            loginUser, null, loginUser.getAuthorities());
+
+                    SecurityContext context = SecurityContextHolder.createEmptyContext();
+                    context.setAuthentication(authentication);
+                    SecurityContextHolder.setContext(context);
+
+                    log.info("Auth set for user: {}, uri: {}", username, requestUri);
+                } else {
+                    log.warn("Invalid token for uri: {}", requestUri);
+                    sendErrorResponse(response, 401, "Token已过期或无效，请重新登录");
+                    return;
                 }
-            } else {
-                response.setContentType("application/json;charset=UTF-8");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                R<?> result = R.fail(401, "Token已过期或无效");
-                response.getWriter().write(objectMapper.writeValueAsString(result));
+            } catch (Exception e) {
+                log.error("Token validation error: {}", e.getMessage());
+                sendErrorResponse(response, 401, "Token验证异常: " + e.getMessage());
                 return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(status);
+        R<?> result = R.fail(status, message);
+        response.getWriter().write(objectMapper.writeValueAsString(result));
     }
 
     private String getToken(HttpServletRequest request) {

@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Tag(name = "CFCA支付认证")
 @RestController
-@RequestMapping("/api/cfca")
+@RequestMapping("/cfca")
 public class CfcaController {
 
     @Autowired
@@ -28,7 +28,7 @@ public class CfcaController {
     @Operation(summary = "支付签名")
     @PostMapping("/sign")
     public R<Boolean> signPayment(@RequestBody CfcaSignDTO dto) {
-        return R.ok(cfcaService.signPaymentData(dto), dto.getSignLevel() >= 2 ? "多人签名完成" : "签名完成");
+        return R.ok(dto.getSignLevel() >= 2 ? "多人签名完成" : "签名完成", cfcaService.signPaymentData(dto));
     }
 
     @Operation(summary = "验签")
@@ -47,6 +47,6 @@ public class CfcaController {
     @PostMapping("/expiry/refresh")
     public R<Void> refreshAlert() {
         cfcaService.refreshExpiryAlert();
-        return R.ok("已刷新");
+        return R.ok("已刷新", null);
     }
 }

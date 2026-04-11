@@ -70,41 +70,41 @@ export function getPaymentPage(params: {
   status?: number | null; startDate?: string; endDate?: string;
   current: number; size: number
 }) {
-  return request.get('/api/payment/page', { params })
+  return request.get('/payment/page', { params })
 }
 
 export function getPaymentDetail(id: number) {
-  return request.get<PaymentVO>(`/api/payment/${id}`)
+  return request.get<PaymentVO>(`/payment/${id}`)
 }
 
 export function createPayment(data: PaymentDTO) {
-  return request.post<number>('/api/payment', data)
+  return request.post<number>('/payment', data)
 }
 
 export function updatePayment(data: PaymentDTO) {
-  return request.put('/api/payment', data)
+  return request.put('/payment', data)
 }
 
 export function deletePayment(id: number) {
-  return request.delete(`/api/payment/${id}`)
+  return request.delete(`/payment/${id}`)
 }
 
 export function submitPayment(id: number) {
-  return request.put(`/api/payment/${id}/submit`)
+  return request.put(`/payment/${id}/submit`)
 }
 
 export function auditPayment(id: number, pass: boolean) {
-  return request.put(`/api/payment/${id}/audit`, null, { params: { pass } })
+  return request.put(`/payment/${id}/audit`, null, { params: { pass } })
 }
 
 export function executePay(id: number) {
-  return request.put(`/api/payment/${id}/pay`)
+  return request.put(`/payment/${id}/pay`)
 }
 
 export function postPayment(id: number) {
-  return request.put(`/api/payment/${id}/post`)
+  return request.put(`/payment/${id}/post`)
 }
 
 export function reversePayment(id: number) {
-  return request.put(`/api/payment/${id}/reverse`)
+  return request.put(`/payment/${id}/reverse`)
 }

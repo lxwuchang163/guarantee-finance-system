@@ -17,7 +17,7 @@ import java.time.LocalDate;
 
 @Tag(name = "付款单管理")
 @RestController
-@RequestMapping("/api/payment")
+@RequestMapping("/payment")
 public class PaymentController {
 
     @Autowired

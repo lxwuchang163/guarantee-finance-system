@@ -178,7 +178,7 @@ const dialogType = ref('add')
 const formRef = ref()
 const currentId = ref(0)
 
-const searchForm = reactive({
+const searchForm = reactive<Record<string, any>>({
   dimensionCode: '',
   dimensionName: '',
   dimensionType: undefined,
@@ -191,10 +191,10 @@ const pageInfo = reactive({
 })
 
 const total = ref(0)
-const dimensions = ref([])
-const dimensionOptions = ref([])
+const dimensions = ref<any[]>([])
+const dimensionOptions = ref<any[]>([])
 
-const formData = reactive({
+const formData = reactive<Record<string, any>>({
   dimensionCode: '',
   dimensionName: '',
   dimensionType: '',
@@ -286,11 +286,12 @@ const handleSubmit = async () => {
   await formRef.value.validate(async (valid: boolean) => {
     if (valid) {
       try {
+        const submitData = formData as any
         if (dialogType.value === 'add') {
-          await auxiliaryApi.createDimension(formData)
+          await auxiliaryApi.createDimension(submitData)
           ElMessage.success('新增维度成功')
         } else {
-          await auxiliaryApi.updateDimension(currentId.value, formData)
+          await auxiliaryApi.updateDimension(currentId.value, submitData)
           ElMessage.success('编辑维度成功')
         }
         dialogVisible.value = false

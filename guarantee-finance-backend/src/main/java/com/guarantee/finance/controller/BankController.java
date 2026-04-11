@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Tag(name = "银企直连")
 @RestController
-@RequestMapping("/api/bank")
+@RequestMapping("/bank")
 public class BankController {
 
     @Autowired
@@ -60,6 +60,6 @@ public class BankController {
     @PostMapping("/account/save")
     public R<Void> saveAccount(@RequestBody BankAccountConfig config) {
         bankService.saveAccountConfig(config);
-        return R.ok("保存成功");
+        return R.ok("保存成功", null);
     }
 }

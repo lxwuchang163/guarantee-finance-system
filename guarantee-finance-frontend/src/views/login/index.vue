@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import type { FormInstance, FormRules } from 'element-plus'
 

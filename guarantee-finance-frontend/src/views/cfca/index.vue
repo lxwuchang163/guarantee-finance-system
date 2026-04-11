@@ -21,7 +21,7 @@
         <el-col :span="6"><el-card shadow="hover" :body-style="{ padding: '16px' }">
           <div class="stat-card">
             <div class="stat-icon" style="background: #e6a23c;"><el-icon :size="24"><Warning /></el-icon></div>
-            <div><div class="stat-value">{{ expiringSoonCount }}</div><div class="stat-label">即将过期</div>
+            <div><div class="stat-value">{{ expiringSoonCount }}</div><div class="stat-label">即将过期</div></div>
           </div>
         </el-card></el-col>
         <el-col :span="6"><el-card shadow="hover" :body-style="{ padding: '16px' }">
@@ -139,11 +139,10 @@ const handleSign = async () => {
   signing.value = true
   try {
     const res = await signPayment(signForm)
-    signResult.value = res.data
+    const success = typeof res.data === 'boolean' ? res.data : (res.data as any)?.success
+    if (success) ElMessage.success('CFCA数字签名成功')
+    else ElMessage.error('签名失败')
     showSignDialog.value = false
-    showResultDialog.value = true
-    if (res.data.success) ElMessage.success('CFCA数字签名成功')
-    else ElMessage.error(res.data.message || '签名失败')
   } catch (e: any) { ElMessage.error(e.message || '签名失败') }
   finally { signing.value = false }
 }

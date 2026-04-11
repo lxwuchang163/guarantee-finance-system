@@ -6,13 +6,13 @@ export interface BankTransactionVO {
   transactionNo?: string
   bankAccountNo: string
   bankAccountName: string
-  direction: number // 1-收入 2-支出
+  direction: number
   amount: number
   balanceAfter: number
   counterAccountName?: string
   counterAccountNo?: string
   summary?: string
-  matchStatus: number // 0-未匹配 1-精确匹配 2-模糊匹配 3-异常
+  matchStatus: number
   matchStatusText?: string
   matchedBillType?: string
   matchedBillNo?: string
@@ -33,7 +33,7 @@ export interface ReconciliationResultVO {
   matchedAmount: number
   unmatchedCount: number
   unmatchedAmount: number
-  status: number // 0-对账中 1-已完成 2-有差异
+  status: number
   creatorName?: string
   createTime?: string
 }
@@ -41,30 +41,30 @@ export interface ReconciliationResultVO {
 export function importTransactions(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post('/api/reconciliation/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+  return request.post('/reconciliation/transaction/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
 
 export function getTransactionPage(params: {
-  bankAccountNo?: string; direction?: number | null; matchStatus?: number | null;
+  accountNo?: string; transactionType?: number | null; matchStatus?: number | null;
   startDate?: string; endDate?: string; current: number; size: number
 }) {
-  return request.get('/api/reconciliation/transaction/list', { params })
+  return request.get('/reconciliation/transaction/list', { params })
 }
 
-export function autoReconcile(bankAccountNo: string, reconcileDate: string) {
-  return request.post('/api/reconciliation/auto', null, { params: { bankAccountNo, reconcileDate } })
+export function autoReconcile(accountNo: string, reconcileDate: string) {
+  return request.post('/reconciliation/auto', null, { params: { accountNo, reconcileDate } })
 }
 
 export function getReconciliationResult(params: {
-  bankAccountNo?: string; startDate?: string; endDate?: string; current: number; size: number
+  accountNo?: string; startDate?: string; endDate?: string; current: number; size: number
 }) {
-  return request.get('/api/reconciliation/result/list', { params })
+  return request.get('/reconciliation/result', { params })
 }
 
 export function forceMatch(data: { transactionId: number; billId: number; billType: string }) {
-  return request.post('/api/reconciliation/force-match', data)
+  return request.put('/reconciliation/forceMatch', null, { params: data })
 }
 
-export function generateBalanceAdjustment(reconciliationId: number) {
-  return request.post(`/api/reconciliation/${reconciliationId}/balance-adjustment`)
+export function generateBalanceAdjustment(accountNo: string, date: string) {
+  return request.get('/reconciliation/balanceAdjustment', { params: { accountNo, date } })
 }

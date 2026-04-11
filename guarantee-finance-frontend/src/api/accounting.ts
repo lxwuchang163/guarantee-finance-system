@@ -35,25 +35,25 @@ export function getVoucherPage(params: {
   voucherNo?: string; voucherType?: string; status?: string;
   startDate?: string; endDate?: string; current: number; size: number
 }) {
-  return request.get('/api/accounting/voucher/list', { params })
+  return request.get('/accounting/voucher/list', { params })
 }
 
 export function getVoucherDetail(id: number) {
-  return request.get<AccVoucherVO>(`/api/accounting/voucher/${id}`)
+  return request.get<AccVoucherVO>(`/accounting/voucher/${id}`)
 }
 
 export function generateVoucher(data: VoucherGenerateDTO) {
-  return request.post<number>('/api/accounting/voucher/generate', data)
+  return request.post<number>('/accounting/voucher/generate', data)
 }
 
 export function batchGenerateVouchers(billIds: number[]) {
-  return request.post<boolean>('/api/accounting/voucher/batch-generate', billIds)
+  return request.post<boolean>('/accounting/voucher/batch-generate', billIds)
 }
 
 export function auditVoucher(id: number) {
-  return request.put(`/api/accounting/voucher/${id}/audit`)
+  return request.put(`/accounting/voucher/${id}/audit`)
 }
 
 export function reverseVoucher(id: number) {
-  return request.put(`/api/accounting/voucher/${id}/reverse`)
+  return request.put(`/accounting/voucher/${id}/reverse`)
 }

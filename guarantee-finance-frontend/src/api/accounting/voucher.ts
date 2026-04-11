@@ -87,57 +87,57 @@ export function getVoucherPage(params: {
   page: number
   size: number
 }) {
-  return request.get('/api/accounting/voucher/page', { params })
+  return request.get('/accounting/voucher/page', { params })
 }
 
 export function getVoucherDetail(id: number) {
-  return request.get(`/api/accounting/voucher/detail/${id}`)
+  return request.get(`/accounting/voucher/detail/${id}`)
 }
 
 export function createVoucher(data: VoucherDTO) {
-  return request.post('/api/accounting/voucher', data)
+  return request.post('/accounting/voucher', data)
 }
 
 export function updateVoucher(id: number, data: VoucherDTO) {
-  return request.put(`/api/accounting/voucher/${id}`, data)
+  return request.put(`/accounting/voucher/${id}`, data)
 }
 
 export function deleteVoucher(id: number) {
-  return request.delete(`/api/accounting/voucher/${id}`)
+  return request.delete(`/accounting/voucher/${id}`)
 }
 
 export function submitVoucher(id: number) {
-  return request.put(`/api/accounting/voucher/${id}/submit`)
+  return request.put(`/accounting/voucher/${id}/submit`)
 }
 
 export function voidVoucher(id: number) {
-  return request.put(`/api/accounting/voucher/${id}/void`)
+  return request.put(`/accounting/voucher/${id}/void`)
 }
 
 export function restoreVoucher(id: number) {
-  return request.put(`/api/accounting/voucher/${id}/restore`)
+  return request.put(`/accounting/voucher/${id}/restore`)
 }
 
 export function getVouchersByPeriod(period: string) {
-  return request.get('/api/accounting/voucher/period', { params: { period } })
+  return request.get('/accounting/voucher/period', { params: { period } })
 }
 
 export function checkVoucherNo(voucherNo: string, id?: number) {
-  return request.get('/api/accounting/voucher/check-no', { params: { voucherNo, id } })
+  return request.get('/accounting/voucher/check-no', { params: { voucherNo, id } })
 }
 
 export function postVoucher(id: number) {
-  return request.put(`/api/accounting/voucher/${id}/post`)
+  return request.put(`/accounting/voucher/${id}/post`)
 }
 
 export function unpostVoucher(id: number) {
-  return request.put(`/api/accounting/voucher/${id}/unpost`)
+  return request.put(`/accounting/voucher/${id}/unpost`)
 }
 
 export function importVouchers(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post('/api/accounting/voucher/import', formData, {
+  return request.post('/accounting/voucher/import', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -145,14 +145,14 @@ export function importVouchers(file: File) {
 }
 
 export function exportVouchersToExcel(period: string) {
-  return request.get('/api/accounting/voucher/export/excel', {
+  return request.get('/accounting/voucher/export/excel', {
     params: { period },
     responseType: 'blob'
   })
 }
 
 export function exportVoucherToPdf(id: number) {
-  return request.get(`/api/accounting/voucher/export/pdf/${id}`, {
+  return request.get(`/accounting/voucher/export/pdf/${id}`, {
     responseType: 'blob'
   })
 }

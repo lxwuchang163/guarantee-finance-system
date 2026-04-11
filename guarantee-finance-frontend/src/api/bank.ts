@@ -14,8 +14,8 @@ export interface BankAccountConfigVO {
   dailyLimit: number
   singleLimit: number
   apiEndpoint?: string
-  apiStatus?: number // 0-未配置 1-正常 2-异常
-  status: number // 0-停用 1-启用
+  apiStatus?: number
+  status: number
   remark?: string
 }
 
@@ -30,25 +30,25 @@ export interface BankBalanceInfo {
 }
 
 export function queryBalance(accountNo: string) {
-  return request.get<BankBalanceInfo>('/api/bank/balance', { params: { accountNo } })
+  return request.get<BankBalanceInfo>('/bank/balance', { params: { accountNo } })
 }
 
-export function batchQueryBalances() {
-  return request.post<BankBalanceInfo[]>('/api/bank/batch-balance')
+export function batchQueryBalances(accountNos: string[]) {
+  return request.post<BankBalanceInfo[]>('/bank/balance/batch', accountNos)
 }
 
 export function downloadTransactions(accountNo: string, startDate: string, endDate: string) {
-  return request.get('/api/bank/transactions', { params: { accountNo, startDate, endDate } })
+  return request.get('/bank/transactions/download', { params: { accountNo, startDate, endDate } })
 }
 
-export function checkPaymentStatus(paymentNo: string) {
-  return request.get('/api/bank/payment-status', { params: { paymentNo } })
+export function checkPaymentStatus(bankCode: string, paymentOrderNo: string) {
+  return request.get('/bank/payment/status', { params: { bankCode, paymentOrderNo } })
 }
 
 export function getBankAccountList() {
-  return request.get<BankAccountConfigVO[]>('/api/bank/account/list')
+  return request.get<BankAccountConfigVO[]>('/bank/account/list')
 }
 
 export function saveBankAccount(data: Partial<BankAccountConfigVO>) {
-  return request.post('/api/bank/account/save', data)
+  return request.post('/bank/account/save', data)
 }

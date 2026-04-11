@@ -15,7 +15,7 @@ import java.util.List;
 
 @Tag(name = "会计平台管理")
 @RestController
-@RequestMapping("/api/accounting")
+@RequestMapping("/accounting")
 @RequiredArgsConstructor
 public class AccountingPlatformController {
 

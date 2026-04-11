@@ -1,6 +1,7 @@
 package com.guarantee.finance.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.guarantee.finance.common.BaseEntity;
@@ -17,10 +18,14 @@ public class AccAuxiliaryDimension extends BaseEntity {
 
     private String dimensionCode; // 维度编码
     private String dimensionName; // 维度名称
+    @TableField(exist = false)
     private String dimensionType; // 维度类型：dept-部门 project-项目 customer-客户 supplier-供应商 business-业务 bank-银行
+    @TableField(exist = false)
     private String description; // 维度描述
     private Integer status; // 状态：0-停用 1-启用
     private Integer sortOrder; // 排序
     private String parentCode; // 父维度编码
+    @TableField(exist = false)
     private Integer dimensionLevel; // 维度层级
+    private Integer level; // 维度层级（数据库字段）
 }

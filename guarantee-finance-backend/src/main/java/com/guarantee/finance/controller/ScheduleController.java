@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Tag(name = "定时任务管理")
 @RestController
-@RequestMapping("/api/schedule")
+@RequestMapping("/schedule")
 @RequiredArgsConstructor
 public class ScheduleController {
 
@@ -27,6 +27,17 @@ public class ScheduleController {
     @GetMapping("/dashboard")
     public R<Map<String, Object>> getDashboard() {
         return R.ok(scheduleService.getScheduleDashboard());
+    }
+
+    @Operation(summary = "分页查询定时任务列表")
+    @GetMapping("/jobs")
+    public R<IPage<ScheduleJob>> listJobs2(
+            @RequestParam(required = false) String jobName,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size) {
+        Page<?> page = Page.of(current, size);
+        return R.ok(scheduleService.queryJobs(jobName, status, page));
     }
 
     @Operation(summary = "分页查询定时任务列表")

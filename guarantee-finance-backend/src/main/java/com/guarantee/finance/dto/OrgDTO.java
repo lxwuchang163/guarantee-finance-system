@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class OrgDTO {
 
+    private Long id;
+
     @NotBlank(message = "机构名称不能为空")
     @Size(max = 100, message = "机构名称长度不能超过100个字符")
     private String orgName;

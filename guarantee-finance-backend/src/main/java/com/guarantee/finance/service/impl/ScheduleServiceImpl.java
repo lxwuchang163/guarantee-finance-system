@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,7 +31,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     public IPage<ScheduleJob> queryJobs(String jobName, String status, Page<?> page) {
         LambdaQueryWrapper<ScheduleJob> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(jobName != null && !jobName.isEmpty(), ScheduleJob::getJobName, jobName)
+        wrapper.like(jobName != null && !jobName.isEmpty(), ScheduleJob::getTaskName, jobName)
                 .eq(status != null && !status.isEmpty(), ScheduleJob::getStatus, status)
                 .orderByDesc(ScheduleJob::getCreateTime);
         return scheduleJobMapper.selectPage(new Page<>(page.getCurrent(), page.getSize()), wrapper);
@@ -80,23 +79,21 @@ public class ScheduleServiceImpl implements ScheduleService {
         if (job == null) {
             throw new RuntimeException("定时任务不存在");
         }
-        log.info("手动执行定时任务: {}-{}", job.getJobGroup(), job.getJobName());
+        log.info("手动执行定时任务: {}", job.getTaskName());
         ScheduleJobLog jobLog = new ScheduleJobLog();
-        jobLog.setJobId(id);
-        jobLog.setJobName(job.getJobName());
-        jobLog.setJobGroup(job.getJobGroup());
-        jobLog.setInvokeTarget(job.getBeanName() + "." + job.getMethodName() + "(" + job.getMethodParams() + ")");
-        jobLog.setStartTime(System.currentTimeMillis());
+        jobLog.setTaskId(id);
+        jobLog.setTaskName(job.getTaskName());
+        jobLog.setStartTime(LocalDateTime.now());
         try {
-            jobLog.setStatus(0);
-            jobLog.setJobMessage("执行成功");
-            jobLog.setEndTime(System.currentTimeMillis());
-            log.info("定时任务执行成功: {}", job.getJobName());
-        } catch (Exception e) {
             jobLog.setStatus(1);
-            jobLog.setExceptionInfo(e.getMessage());
-            jobLog.setEndTime(System.currentTimeMillis());
-            log.error("定时任务执行失败: {}", job.getJobName(), e);
+            jobLog.setResult("执行成功");
+            jobLog.setEndTime(LocalDateTime.now());
+            log.info("定时任务执行成功: {}", job.getTaskName());
+        } catch (Exception e) {
+            jobLog.setStatus(0);
+            jobLog.setErrorMessage(e.getMessage());
+            jobLog.setEndTime(LocalDateTime.now());
+            log.error("定时任务执行失败: {}", job.getTaskName(), e);
         } finally {
             scheduleJobLogMapper.insert(jobLog);
         }
@@ -105,7 +102,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     public IPage<ScheduleJobLog> queryLogs(Long jobId, Integer status, Page<?> page) {
         LambdaQueryWrapper<ScheduleJobLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(jobId != null, ScheduleJobLog::getJobId, jobId)
+        wrapper.eq(jobId != null, ScheduleJobLog::getTaskId, jobId)
                 .eq(status != null, ScheduleJobLog::getStatus, status)
                 .orderByDesc(ScheduleJobLog::getCreateTime);
         return scheduleJobLogMapper.selectPage(new Page<>(page.getCurrent(), page.getSize()), wrapper);
@@ -147,12 +144,12 @@ public class ScheduleServiceImpl implements ScheduleService {
                 new LambdaQueryWrapper<ScheduleJob>().eq(ScheduleJob::getStatus, "0"));
         long todaySuccessLogs = scheduleJobLogMapper.selectCount(
                 new LambdaQueryWrapper<ScheduleJobLog>()
-                        .eq(ScheduleJobLog::getStatus, 0)
+                        .eq(ScheduleJobLog::getStatus, 1)
                         .ge(ScheduleJobLog::getCreateTime,
                                 LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)));
         long todayFailLogs = scheduleJobLogMapper.selectCount(
                 new LambdaQueryWrapper<ScheduleJobLog>()
-                        .eq(ScheduleJobLog::getStatus, 1)
+                        .eq(ScheduleJobLog::getStatus, 0)
                         .ge(ScheduleJobLog::getCreateTime,
                                 LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)));
         dashboard.put("totalJobs", totalJobs);
@@ -167,9 +164,9 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .stream().map(log -> {
                     Map<String, Object> item = new HashMap<>();
                     item.put("id", log.getId());
-                    item.put("jobName", log.getJobName());
+                    item.put("taskName", log.getTaskName());
                     item.put("status", log.getStatus());
-                    item.put("jobMessage", log.getJobMessage());
+                    item.put("result", log.getResult());
                     item.put("createTime", log.getCreateTime());
                     return item;
                 }).collect(Collectors.toList());

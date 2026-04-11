@@ -40,45 +40,45 @@ export function getSubjectPage(params: {
   page: number
   size: number
 }) {
-  return request.get('/api/accounting/subject/page', { params })
+  return request.get('/accounting/subject/page', { params })
 }
 
 export function getSubjectDetail(id: number) {
-  return request.get(`/api/accounting/subject/detail/${id}`)
+  return request.get(`/accounting/subject/detail/${id}`)
 }
 
 export function createSubject(data: SubjectDTO) {
-  return request.post('/api/accounting/subject', data)
+  return request.post('/accounting/subject', data)
 }
 
 export function updateSubject(id: number, data: SubjectDTO) {
-  return request.put(`/api/accounting/subject/${id}`, data)
+  return request.put(`/accounting/subject/${id}`, data)
 }
 
 export function deleteSubject(id: number) {
-  return request.delete(`/api/accounting/subject/${id}`)
+  return request.delete(`/accounting/subject/${id}`)
 }
 
 export function changeSubjectStatus(id: number, status: number) {
-  return request.put(`/api/accounting/subject/${id}/status`, { status })
+  return request.put(`/accounting/subject/${id}/status`, { status })
 }
 
 export function getSubjectTree() {
-  return request.get('/api/accounting/subject/tree')
+  return request.get('/accounting/subject/tree')
 }
 
 export function getEnabledSubjects() {
-  return request.get('/api/accounting/subject/enabled')
+  return request.get('/accounting/subject/enabled')
 }
 
 export function checkSubjectCode(subjectCode: string, id?: number) {
-  return request.get('/api/accounting/subject/check-code', { params: { subjectCode, id } })
+  return request.get('/accounting/subject/check-code', { params: { subjectCode, id } })
 }
 
 export function importSubjects(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post('/api/accounting/subject/import', formData, {
+  return request.post('/accounting/subject/import', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -86,5 +86,5 @@ export function importSubjects(file: File) {
 }
 
 export function validateSubjects() {
-  return request.post('/api/accounting/subject/validate')
+  return request.post('/accounting/subject/validate')
 }

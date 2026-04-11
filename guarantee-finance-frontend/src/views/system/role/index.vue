@@ -277,6 +277,7 @@ import {
   updateRoleStatus,
   initPresetRoles as initPresetRolesApi,
   getAllRoles,
+  getRoleDetail,
   getMenuTree as getMenuTreeApi
 } from '@/api/role'
 import type { RoleVO, RoleDTO, RoleSimpleVO, RoleCompareVO, MenuTreeVO } from '@/api/role'

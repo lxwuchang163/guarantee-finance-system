@@ -9,6 +9,7 @@ import com.guarantee.finance.entity.BizCustomer;
 import com.guarantee.finance.mapper.BizCustomerMapper;
 import com.guarantee.finance.service.BizCustomerService;
 import com.guarantee.finance.vo.CustomerVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class BizCustomerServiceImpl extends ServiceImpl<BizCustomerMapper, BizCustomer> implements BizCustomerService {
 

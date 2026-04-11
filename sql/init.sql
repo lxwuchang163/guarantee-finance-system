@@ -560,11 +560,11 @@ INSERT INTO `sys_org` (`org_name`, `org_code`, `parent_id`, `level`, `status`) V
 ('上海分公司', 'SHANGHAI_BRANCH', 1, 2, 1),
 ('广州分公司', 'GUANGZHOU_BRANCH', 1, 2, 1);
 
--- 5.2 插入用户数据（密码为123456的BCrypt加密）
+-- 5.2 插入用户数据（密码为admin123，登录时有BCrypt和明文双重校验）
 INSERT INTO `sys_user` (`username`, `password`, `nickname`, `org_id`, `status`) VALUES
-('admin', '123456', '系统管理员', 1, 1),
-('zhangsan', '123456', '张三', 2, 1),
-('lisi', '123456', '李四', 3, 1);
+('admin', 'admin123', '系统管理员', 1, 1),
+('zhangsan', 'admin123', '张三', 2, 1),
+('lisi', 'admin123', '李四', 3, 1);
 
 -- 5.3 插入角色数据
 INSERT INTO `sys_role` (`role_name`, `role_code`, `description`, `status`) VALUES
@@ -651,3 +651,376 @@ INSERT INTO `acc_conversion_template` (`template_code`, `template_name`, `busine
 ('TPL_PAYMENT_001', '付款凭证模板', 'payment', '标准付款业务凭证模板', '{"debit_subject":"6601","credit_subject":"1002"}', 1),
 ('TPL_REFUND_001', '退费凭证模板', 'refund', '退费业务凭证模板', '{"debit_subject":"2241","credit_subject":"1002"}', 1),
 ('TPL_COMPENSATION_001', '代偿凭证模板', 'compensation', '代偿业务凭证模板', '{"debit_subject":"1221","credit_subject":"1002"}', 1);
+
+-- =============================================
+-- 六、审批流程相关表
+-- =============================================
+
+-- 6.1 流程定义表
+DROP TABLE IF EXISTS `process_definition`;
+CREATE TABLE `process_definition` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` VARCHAR(100) NOT NULL COMMENT '流程名称',
+  `business_type` VARCHAR(50) COMMENT '业务类型',
+  `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `version` INT DEFAULT 1 COMMENT '版本号',
+  `description` VARCHAR(500) COMMENT '描述',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  `remark` VARCHAR(500) COMMENT '备注',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流程定义表';
+
+-- 6.2 流程节点表
+DROP TABLE IF EXISTS `process_node`;
+CREATE TABLE `process_node` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `definition_id` BIGINT NOT NULL COMMENT '流程定义ID',
+  `node_name` VARCHAR(100) NOT NULL COMMENT '节点名称',
+  `node_type` VARCHAR(50) COMMENT '节点类型',
+  `approver_type` VARCHAR(50) COMMENT '审批人类型：role-角色 user-用户 specific-指定',
+  `approver_value` VARCHAR(100) COMMENT '审批人值',
+  `sort_order` INT DEFAULT 0 COMMENT '排序',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_definition_id` (`definition_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流程节点表';
+
+-- 6.3 流程实例表
+DROP TABLE IF EXISTS `process_instance`;
+CREATE TABLE `process_instance` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `definition_id` BIGINT NOT NULL COMMENT '流程定义ID',
+  `business_key` BIGINT COMMENT '业务主键',
+  `business_type` VARCHAR(50) COMMENT '业务类型',
+  `status` TINYINT DEFAULT 0 COMMENT '状态：0-进行中 1-待审批 2-已通过 3-已驳回 4-已撤回',
+  `current_node_index` INT DEFAULT 0 COMMENT '当前节点索引',
+  `current_node_id` BIGINT COMMENT '当前节点ID',
+  `current_node_name` VARCHAR(100) COMMENT '当前节点名称',
+  `current_approver` VARCHAR(100) COMMENT '当前审批人',
+  `initiator_id` BIGINT COMMENT '发起人ID',
+  `initiator_name` VARCHAR(50) COMMENT '发起人姓名',
+  `initiator_time` DATETIME COMMENT '发起时间',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_definition_id` (`definition_id`),
+  KEY `idx_business_key` (`business_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流程实例表';
+
+-- 6.4 审批记录表
+DROP TABLE IF EXISTS `approve_record`;
+CREATE TABLE `approve_record` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `instance_id` BIGINT NOT NULL COMMENT '流程实例ID',
+  `node_id` BIGINT COMMENT '节点ID',
+  `node_name` VARCHAR(100) COMMENT '节点名称',
+  `approver_id` BIGINT COMMENT '审批人ID',
+  `approver_name` VARCHAR(50) COMMENT '审批人姓名',
+  `opinion` VARCHAR(500) COMMENT '审批意见',
+  `result` VARCHAR(50) COMMENT '审批结果：approve-通过 reject-驳回',
+  `approve_time` DATETIME COMMENT '审批时间',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_instance_id` (`instance_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审批记录表';
+
+-- =============================================
+-- 七、银行相关表
+-- =============================================
+
+-- 7.1 银行账户配置表
+DROP TABLE IF EXISTS `bank_account_config`;
+CREATE TABLE `bank_account_config` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `account_no` VARCHAR(50) NOT NULL COMMENT '银行账号',
+  `account_name` VARCHAR(100) NOT NULL COMMENT '账户名称',
+  `bank_name` VARCHAR(100) COMMENT '开户行名称',
+  `bank_code` VARCHAR(20) COMMENT '银行编码',
+  `bank_type` VARCHAR(50) COMMENT '银行类型',
+  `currency` VARCHAR(10) DEFAULT 'CNY' COMMENT '币种',
+  `account_type` TINYINT COMMENT '账户类型：1-基本户 2-一般户 3-临时户',
+  `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `org_id` BIGINT COMMENT '所属机构ID',
+  `balance` DECIMAL(18,2) DEFAULT 0.00 COMMENT '账户余额',
+  `last_sync_time` DATETIME COMMENT '最后同步时间',
+  `threshold_warning` DECIMAL(18,2) DEFAULT 0.00 COMMENT '预警阈值',
+  `threshold_stop` DECIMAL(18,2) DEFAULT 0.00 COMMENT '停用阈值',
+  `daily_limit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '日限额',
+  `single_limit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '单笔限额',
+  `api_status` TINYINT DEFAULT 1 COMMENT 'API状态：0-异常 1-正常',
+  `api_endpoint` VARCHAR(255) COMMENT 'API端点',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  `remark` VARCHAR(500) COMMENT '备注',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_account_no` (`account_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='银行账户配置表';
+
+-- 7.2 银行流水表
+DROP TABLE IF EXISTS `bank_transaction`;
+CREATE TABLE `bank_transaction` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `account_no` VARCHAR(50) NOT NULL COMMENT '银行账号',
+  `transaction_date` DATE COMMENT '交易日期',
+  `transaction_time` TIME COMMENT '交易时间',
+  `transaction_type` TINYINT COMMENT '交易类型：1-收入 2-支出',
+  `amount` DECIMAL(18,2) DEFAULT 0.00 COMMENT '交易金额',
+  `balance` DECIMAL(18,2) DEFAULT 0.00 COMMENT '账户余额',
+  `counter_account_no` VARCHAR(50) COMMENT '对方账号',
+  `counter_account_name` VARCHAR(100) COMMENT '对方户名',
+  `counter_bank_name` VARCHAR(100) COMMENT '对方开户行',
+  `summary` VARCHAR(255) COMMENT '摘要',
+  `reference_no` VARCHAR(50) COMMENT '参考号',
+  `voucher_no` VARCHAR(50) COMMENT '凭证号',
+  `reconciled` TINYINT DEFAULT 0 COMMENT '是否对账：0-未对账 1-已对账',
+  `reconciliation_id` BIGINT COMMENT '对账记录ID',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_account_no` (`account_no`),
+  KEY `idx_transaction_date` (`transaction_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='银行流水表';
+
+-- 7.3 银行对账表
+DROP TABLE IF EXISTS `bank_reconciliation`;
+CREATE TABLE `bank_reconciliation` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `account_no` VARCHAR(50) NOT NULL COMMENT '银行账号',
+  `reconciliation_date` DATE COMMENT '对账日期',
+  `begin_balance` DECIMAL(18,2) DEFAULT 0.00 COMMENT '期初余额',
+  `end_balance` DECIMAL(18,2) DEFAULT 0.00 COMMENT '期末余额',
+  `bank_debit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '银行借方',
+  `bank_credit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '银行贷方',
+  `book_debit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '账面借方',
+  `book_credit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '账面贷方',
+  `unmatched_debit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '未达借方',
+  `unmatched_credit` DECIMAL(18,2) DEFAULT 0.00 COMMENT '未达贷方',
+  `status` TINYINT DEFAULT 0 COMMENT '状态：0-未完成 1-已完成',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  `remark` VARCHAR(500) COMMENT '备注',
+  PRIMARY KEY (`id`),
+  KEY `idx_account_no` (`account_no`),
+  KEY `idx_reconciliation_date` (`reconciliation_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='银行对账表';
+
+-- =============================================
+-- 八、NC同步相关表
+-- =============================================
+
+-- 8.1 NC同步日志表
+DROP TABLE IF EXISTS `nc_sync_log`;
+CREATE TABLE `nc_sync_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `sync_type` VARCHAR(50) COMMENT '同步类型',
+  `sync_direction` VARCHAR(50) COMMENT '同步方向：import-导入 export-导出',
+  `business_type` VARCHAR(50) COMMENT '业务类型',
+  `business_id` BIGINT COMMENT '业务ID',
+  `business_no` VARCHAR(50) COMMENT '业务单号',
+  `request_data` TEXT COMMENT '请求数据',
+  `response_data` TEXT COMMENT '响应数据',
+  `status` TINYINT DEFAULT 0 COMMENT '状态：0-待处理 1-处理中 2-成功 3-失败',
+  `error_message` VARCHAR(500) COMMENT '错误信息',
+  `sync_time` DATETIME COMMENT '同步时间',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  `remark` VARCHAR(500) COMMENT '备注',
+  PRIMARY KEY (`id`),
+  KEY `idx_business_id` (`business_id`),
+  KEY `idx_sync_time` (`sync_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='NC同步日志表';
+
+-- 8.2 NC同步错误表
+DROP TABLE IF EXISTS `nc_sync_error`;
+CREATE TABLE `nc_sync_error` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `log_id` BIGINT COMMENT '同步日志ID',
+  `error_type` VARCHAR(50) COMMENT '错误类型',
+  `error_code` VARCHAR(50) COMMENT '错误代码',
+  `error_message` VARCHAR(500) COMMENT '错误信息',
+  `retry_count` INT DEFAULT 0 COMMENT '重试次数',
+  `resolved` TINYINT DEFAULT 0 COMMENT '是否解决：0-未解决 1-已解决',
+  `resolved_time` DATETIME COMMENT '解决时间',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_log_id` (`log_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='NC同步错误表';
+
+-- =============================================
+-- 九、CFCA证书相关表
+-- =============================================
+
+-- 9.1 CFCA证书表
+DROP TABLE IF EXISTS `cfca_certificate`;
+CREATE TABLE `cfca_certificate` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `cert_no` VARCHAR(100) NOT NULL COMMENT '证书编号',
+  `cert_type` VARCHAR(50) COMMENT '证书类型',
+  `owner_name` VARCHAR(100) COMMENT '持有人姓名',
+  `owner_id` BIGINT COMMENT '持有人ID',
+  `issuer` VARCHAR(100) COMMENT '颁发机构',
+  `issue_date` DATE COMMENT '颁发日期',
+  `expire_date` DATE COMMENT '过期日期',
+  `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用 2-过期',
+  `public_key` TEXT COMMENT '公钥',
+  `private_key` TEXT COMMENT '私钥（加密存储）',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  `remark` VARCHAR(500) COMMENT '备注',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_cert_no` (`cert_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='CFCA证书表';
+
+-- =============================================
+-- 十、定时任务相关表
+-- =============================================
+
+-- 10.1 定时任务配置表
+DROP TABLE IF EXISTS `schedule_task_config`;
+CREATE TABLE `schedule_task_config` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `task_name` VARCHAR(100) NOT NULL COMMENT '任务名称',
+  `task_code` VARCHAR(50) NOT NULL COMMENT '任务编码',
+  `task_type` VARCHAR(50) COMMENT '任务类型',
+  `cron_expression` VARCHAR(100) COMMENT 'Cron表达式',
+  `task_class` VARCHAR(200) COMMENT '任务类',
+  `task_params` VARCHAR(500) COMMENT '任务参数',
+  `status` TINYINT DEFAULT 1 COMMENT '状态：0-暂停 1-运行',
+  `last_run_time` DATETIME COMMENT '最后执行时间',
+  `next_run_time` DATETIME COMMENT '下次执行时间',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  `remark` VARCHAR(500) COMMENT '备注',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_task_code` (`task_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务配置表';
+
+-- 10.2 定时任务日志表
+DROP TABLE IF EXISTS `schedule_job_log`;
+CREATE TABLE `schedule_job_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `task_id` BIGINT NOT NULL COMMENT '任务ID',
+  `task_name` VARCHAR(100) COMMENT '任务名称',
+  `start_time` DATETIME COMMENT '开始时间',
+  `end_time` DATETIME COMMENT '结束时间',
+  `duration` BIGINT COMMENT '耗时（毫秒）',
+  `status` TINYINT COMMENT '状态：0-失败 1-成功',
+  `result` TEXT COMMENT '执行结果',
+  `error_message` VARCHAR(500) COMMENT '错误信息',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_task_id` (`task_id`),
+  KEY `idx_start_time` (`start_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='定时任务日志表';
+
+-- =============================================
+-- 十一、同步任务相关表
+-- =============================================
+
+-- 11.1 同步任务表
+DROP TABLE IF EXISTS `sync_task`;
+CREATE TABLE `sync_task` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `task_name` VARCHAR(100) NOT NULL COMMENT '任务名称',
+  `task_type` VARCHAR(50) COMMENT '任务类型',
+  `source_system` VARCHAR(50) COMMENT '源系统',
+  `target_system` VARCHAR(50) COMMENT '目标系统',
+  `sync_mode` VARCHAR(50) COMMENT '同步模式：full-全量 incremental-增量',
+  `last_sync_time` DATETIME COMMENT '最后同步时间',
+  `next_sync_time` DATETIME COMMENT '下次同步时间',
+  `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人',
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人',
+  `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+  `remark` VARCHAR(500) COMMENT '备注',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='同步任务表';
+
+-- 11.2 同步任务日志表
+DROP TABLE IF EXISTS `sync_task_log`;
+CREATE TABLE `sync_task_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `task_id` BIGINT NOT NULL COMMENT '任务ID',
+  `start_time` DATETIME COMMENT '开始时间',
+  `end_time` DATETIME COMMENT '结束时间',
+  `total_count` INT DEFAULT 0 COMMENT '总记录数',
+  `success_count` INT DEFAULT 0 COMMENT '成功记录数',
+  `fail_count` INT DEFAULT 0 COMMENT '失败记录数',
+  `status` TINYINT COMMENT '状态：0-失败 1-成功 2-部分成功',
+  `error_message` VARCHAR(500) COMMENT '错误信息',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_task_id` (`task_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='同步任务日志表';
+
+-- 11.3 同步错误记录表
+DROP TABLE IF EXISTS `sync_error_record`;
+CREATE TABLE `sync_error_record` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `task_log_id` BIGINT NOT NULL COMMENT '任务日志ID',
+  `business_id` VARCHAR(50) COMMENT '业务ID',
+  `business_no` VARCHAR(50) COMMENT '业务单号',
+  `error_type` VARCHAR(50) COMMENT '错误类型',
+  `error_message` VARCHAR(500) COMMENT '错误信息',
+  `retry_count` INT DEFAULT 0 COMMENT '重试次数',
+  `resolved` TINYINT DEFAULT 0 COMMENT '是否解决：0-未解决 1-已解决',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_task_log_id` (`task_log_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='同步错误记录表';
+
+-- =============================================
+-- 十二、补充菜单数据
+-- =============================================
+
+INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `path`, `component`, `icon`, `menu_type`, `status`) VALUES
+('银企直连', 15, '/bank', 'views/bank/index', 'Link', 2, 1),
+('CFCA认证', 15, '/cfca', 'views/cfca/index', 'Key', 2, 1),
+('定时任务', 0, '/schedule', 'views/schedule/index', 'Timer', 2, 1),
+('审批流程', 2, '/system/process', 'views/system/process/index', 'SetUp', 2, 1);
+
+-- =============================================
+-- 十三、银行账户示例数据
+-- =============================================
+
+INSERT INTO `bank_account_config` (`account_no`, `account_name`, `bank_name`, `bank_code`, `currency`, `status`, `org_id`, `balance`, `api_status`, `threshold_warning`, `threshold_stop`, `daily_limit`, `single_limit`) VALUES
+('6222021001001234567', '担保集团基本户-工行', '中国工商银行', 'ICBC', 'CNY', 1, 1, 1256780.50, 1, 100000.00, 50000.00, 5000000.00, 1000000.00),
+('6222021001002345678', '担保集团一般户-建行', '中国建设银行', 'CCB', 'CNY', 1, 1, 856420.30, 1, 80000.00, 40000.00, 3000000.00, 500000.00),
+('6222021001003456789', '担保集团一般户-农行', '中国农业银行', 'ABC', 'CNY', 1, 2, 432150.80, 1, 50000.00, 25000.00, 2000000.00, 300000.00);

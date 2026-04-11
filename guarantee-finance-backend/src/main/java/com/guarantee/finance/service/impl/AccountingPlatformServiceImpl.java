@@ -13,6 +13,7 @@ import com.guarantee.finance.mapper.AccVoucherMapper;
 import com.guarantee.finance.security.LoginUser;
 import com.guarantee.finance.service.AccountingPlatformService;
 import com.guarantee.finance.vo.AccVoucherVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Slf4j
 @Service
 public class AccountingPlatformServiceImpl extends ServiceImpl<AccVoucherMapper, AccVoucher> implements AccountingPlatformService {
 
@@ -57,36 +59,20 @@ public class AccountingPlatformServiceImpl extends ServiceImpl<AccVoucherMapper,
 
     @Override
     public Long generateVoucher(VoucherGenerateDTO dto) {
-        // 根据来源单据类型匹配凭证模板，生成凭证
         AccVoucher voucher = new AccVoucher();
         voucher.setVoucherNo(generateVoucherNo());
-        voucher.setVoucherDate(dto.getVoucherType() != null ? LocalDateTime.now().toLocalDate().toString() : "");
+        voucher.setVoucherDate(LocalDateTime.now().toLocalDate().toString());
         voucher.setVoucherType(dto.getVoucherType() != null ? Integer.parseInt(dto.getVoucherType()) : 3);
-        voucher.setVoucherTypeName(getVoucherTypeName(voucher.getVoucherType()));
-        voucher.setAccountingPeriod(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM")));
-        voucher.setMaker(getCurrentUserName());
-        voucher.setStatus(0); // 未审核
-        voucher.setSourceBillType(dto.getSourceBillType());
-        voucher.setSourceBillNo(dto.getSourceBillNo());
-
-        // 根据业务规则生成借贷分录
-        BigDecimal amount = dto.getAmount();
-        if ("RECEIPT".equals(dto.getSourceBillType())) {
-            // 收款单：借 银行存款 / 贷 收入类科目
-            voucher.setTotalDebit(amount);
-            voucher.setTotalCredit(amount);
-        } else {
-            // 付款单：借 支出类科目 / 贷 银行存款
-            voucher.setTotalDebit(amount);
-            voucher.setTotalCredit(amount);
-        }
+        voucher.setPeriod(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM")));
+        voucher.setCreateUserId(getCurrentUserId());
+        voucher.setStatus(0);
+        voucher.setSourceType(dto.getSourceBillType() != null ? "1" : "0");
+        voucher.setSourceId(dto.getSourceBillNo());
 
         save(voucher);
 
-        // 生成分录
         generateDetails(voucher.getId(), dto);
 
-        // 更新来源单据的凭证ID（如果有）
         return voucher.getId();
     }
 
@@ -97,7 +83,6 @@ public class AccountingPlatformServiceImpl extends ServiceImpl<AccVoucherMapper,
             try {
                 VoucherGenerateDTO dto = new VoucherGenerateDTO();
                 dto.setSourceBillId(billId);
-                // TODO: 根据billId查询原始单据信息填充dto
                 generateVoucher(dto);
                 successCount++;
             } catch (Exception e) {
@@ -114,7 +99,7 @@ public class AccountingPlatformServiceImpl extends ServiceImpl<AccVoucherMapper,
         if (voucher == null) throw new RuntimeException("凭证不存在");
         if (voucher.getStatus() != 0) throw new RuntimeException("只有未审核状态可以审核");
         voucher.setStatus(1);
-        voucher.setAuditor(getCurrentUserName());
+        voucher.setApproveUserId(getCurrentUserId());
         updateById(voucher);
     }
 
@@ -123,42 +108,36 @@ public class AccountingPlatformServiceImpl extends ServiceImpl<AccVoucherMapper,
         AccVoucher voucher = getById(id);
         if (voucher == null) throw new RuntimeException("凭证不存在");
         if (voucher.getStatus() < 1) throw new RuntimeException("已审核后才能冲销");
-        voucher.setStatus(3); // 已作废
+        voucher.setStatus(3);
         updateById(voucher);
     }
 
     private void generateDetails(Long voucherId, VoucherGenerateDTO dto) {
-        // 借方分录
         AccVoucherDetail debitDetail = new AccVoucherDetail();
         debitDetail.setVoucherId(voucherId);
         debitDetail.setLineNo(1);
         if ("RECEIPT".equals(dto.getSourceBillType())) {
-            debitDetail.setAccountCode("1002"); // 银行存款
-            debitDetail.setAccountName("银行存款");
+            debitDetail.setSubjectCode("1002");
+            debitDetail.setSubjectName("银行存款");
         } else {
-            debitDetail.setAccountCode(getDebitAccountByType(dto.getSourceBillType()));
-            debitDetail.setAccountName(debitDetail.getAccountCode());
+            debitDetail.setSubjectCode(getDebitAccountByType(dto.getSourceBillType()));
+            debitDetail.setSubjectName(debitDetail.getSubjectCode());
         }
-        debitDetail.setDirection("DEBIT");
-        debitDetail.setAmount(dto.getAmount());
         debitDetail.setDebitAmount(dto.getAmount());
         debitDetail.setSummary(buildSummary(dto));
         debitDetail.setCustomerCode(dto.getCustomerCode());
         detailMapper.insert(debitDetail);
 
-        // 贷方分录
         AccVoucherDetail creditDetail = new AccVoucherDetail();
         creditDetail.setVoucherId(voucherId);
         creditDetail.setLineNo(2);
         if ("RECEIPT".equals(dto.getSourceBillType())) {
-            creditDetail.setAccountCode("6001"); // 保费收入/主营业务收入
-            creditDetail.setAccountName("保费收入");
+            creditDetail.setSubjectCode("6001");
+            creditDetail.setSubjectName("保费收入");
         } else {
-            creditDetail.setAccountCode("1002"); // 银行存款
-            creditDetail.setAccountName("银行存款");
+            creditDetail.setSubjectCode("1002");
+            creditDetail.setSubjectName("银行存款");
         }
-        creditDetail.setDirection("CREDIT");
-        creditDetail.setAmount(dto.getAmount());
         creditDetail.setCreditAmount(dto.getAmount());
         creditDetail.setSummary(buildSummary(dto));
         detailMapper.insert(creditDetail);
@@ -176,16 +155,12 @@ public class AccountingPlatformServiceImpl extends ServiceImpl<AccVoucherMapper,
         return "PZ" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + String.format("%04d", VOUCHER_NO_SEQ.incrementAndGet() % 10000);
     }
 
-    private String getVoucherTypeName(Integer type) {
-        switch (type) { case 1: return "收款凭证"; case 2: return "付款凭证"; default: return "转账凭证"; }
-    }
-
     private String getDebitAccountByType(String type) {
         switch (type) {
-            case "REFUND": return "6001"; // 退费-红字保费收入
-            case "COMPENSATION": return "1221"; // 代偿-应收代偿款
-            case "DISTRIBUTION": return "2203"; // 追回分配-其他应付款
-            default: return "6601"; // 其他支出
+            case "REFUND": return "6001";
+            case "COMPENSATION": return "1221";
+            case "DISTRIBUTION": return "2203";
+            default: return "6601";
         }
     }
 
@@ -198,6 +173,12 @@ public class AccountingPlatformServiceImpl extends ServiceImpl<AccVoucherMapper,
 
     private String getStatusText(Integer s) {
         switch (s) { case 0: return "未审核"; case 1: return "已审核"; case 2: return "已记账"; case 3: return "已作废"; default: return "未知"; }
+    }
+
+    private Long getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof LoginUser) return ((LoginUser) auth.getPrincipal()).getUserId();
+        return 0L;
     }
 
     private String getCurrentUserName() {

@@ -14,17 +14,28 @@ import java.util.Map;
 
 @Tag(name = "银行对账")
 @RestController
-@RequestMapping("/api/reconciliation")
+@RequestMapping("/reconciliation")
 public class ReconciliationController {
 
     @Autowired
     private BankReconciliationService reconciliationService;
 
+    @Operation(summary = "对账记录分页查询")
+    @GetMapping("/page")
+    public R<?> page(
+            @RequestParam(required = false) String accountNo,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(defaultValue = "1") Long current,
+            @RequestParam(defaultValue = "10") Long size) {
+        return R.ok(reconciliationService.queryTransactions(accountNo, null, startDate, null, null,
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(current, size)));
+    }
+
     @Operation(summary = "导入银行流水")
     @PostMapping("/transaction/import")
     public R<Void> importTransactions(@RequestBody List<Map<String, Object>> transactionList) {
         reconciliationService.importTransactions(transactionList, "MANUAL_IMPORT");
-        return R.ok("导入成功");
+        return R.ok("导入成功", null);
     }
 
     @Operation(summary = "银行流水查询")
@@ -46,21 +57,26 @@ public class ReconciliationController {
     public R<Void> autoReconciliation(@RequestParam String accountNo,
                                       @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         reconciliationService.executeAutoReconciliation(accountNo, date);
-        return R.ok("自动对账完成");
+        return R.ok("自动对账完成", null);
     }
 
     @Operation(summary = "获取对账结果")
     @GetMapping("/result")
-    public R<Map<String, Object>> getReconciliationResult(@RequestParam String accountNo,
-                                                           @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
-        return R.ok(reconciliationService.getReconciliationResult(accountNo, date));
+    public R<?> getReconciliationResult(
+            @RequestParam(required = false) String accountNo,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(defaultValue = "1") Long current,
+            @RequestParam(defaultValue = "10") Long size) {
+        return R.ok(reconciliationService.queryReconciliationResults(accountNo, startDate, endDate,
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(current, size)));
     }
 
     @Operation(summary = "手工强制勾兑")
     @PutMapping("/forceMatch")
     public R<Void> forceMatch(@RequestParam Long transactionId, @RequestParam Long billId, @RequestParam String billType) {
         reconciliationService.forceMatch(transactionId, billId, billType);
-        return R.ok("勾兑成功");
+        return R.ok("勾兑成功", null);
     }
 
     @Operation(summary = "生成余额调节表")
