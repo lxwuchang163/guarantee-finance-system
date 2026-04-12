@@ -55,8 +55,8 @@ export interface VoucherDetailDTO {
   subjectCode: string
   subjectName: string
   summary: string
-  debitAmount: number
-  creditAmount: number
+  debitAmount: number | string
+  creditAmount: number | string
   auxiliaryInfo: string
   departmentCode: string
   projectCode: string
@@ -154,5 +154,17 @@ export function exportVouchersToExcel(period: string) {
 export function exportVoucherToPdf(id: number) {
   return request.get(`/accounting/voucher/export/pdf/${id}`, {
     responseType: 'blob'
+  })
+}
+
+export function approveVoucher(id: number, opinion: string) {
+  return request.post(`/accounting/audit/approve/${id}`, null, {
+    params: { opinion }
+  })
+}
+
+export function rejectVoucher(id: number, opinion: string) {
+  return request.post(`/accounting/audit/reject/${id}`, null, {
+    params: { opinion }
   })
 }

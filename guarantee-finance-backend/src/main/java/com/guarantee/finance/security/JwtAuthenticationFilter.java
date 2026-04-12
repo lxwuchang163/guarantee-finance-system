@@ -45,10 +45,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     Long userId = jwtUtils.getUserIdFromToken(token);
                     String username = jwtUtils.getUsernameFromToken(token);
 
+                    // 为所有用户添加默认权限
+                    java.util.List<String> permissions = new java.util.ArrayList<>();
+                    permissions.add("voucher:create");
+                    permissions.add("voucher:update");
+                    permissions.add("voucher:delete");
+                    permissions.add("voucher:submit");
+                    permissions.add("voucher:void");
+                    permissions.add("voucher:restore");
+                    permissions.add("voucher:post");
+                    permissions.add("voucher:unpost");
+                    permissions.add("voucher:import");
+                    permissions.add("voucher:export");
+                    permissions.add("subject:view");
+                    permissions.add("subject:create");
+                    permissions.add("subject:update");
+                    permissions.add("subject:delete");
+
                     LoginUser loginUser = new LoginUser();
                     loginUser.setUserId(userId);
                     loginUser.setUsername(username);
                     loginUser.setStatus(1);
+                    loginUser.setPermissions(permissions);
+
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             loginUser, null, loginUser.getAuthorities());
 

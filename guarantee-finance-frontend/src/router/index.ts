@@ -24,12 +24,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/dashboard/index.vue'),
         meta: { title: '仪表盘', icon: 'Odometer' }
       },
-      {
-        path: 'sync',
-        name: 'Sync',
-        component: () => import('@/views/sync/index.vue'),
-        meta: { title: '基础信息同步', icon: 'Refresh' }
-      },
+
       {
         path: 'receipt',
         name: 'Receipt',
@@ -56,9 +51,25 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'accounting',
-        name: 'Accounting',
-        component: () => import('@/views/accounting/index.vue'),
-        meta: { title: '会计平台', icon: 'Notebook' }
+        redirect: '/accounting/subject'
+      },
+      {
+        path: 'accounting/subject',
+        name: 'SubjectManage',
+        component: () => import('@/views/accounting/subject.vue'),
+        meta: { title: '科目管理', icon: 'List' }
+      },
+      {
+        path: 'accounting/auxiliary',
+        name: 'AuxiliaryManage',
+        component: () => import('@/views/accounting/auxiliary.vue'),
+        meta: { title: '辅助核算', icon: 'Grid' }
+      },
+      {
+        path: 'accounting/voucher',
+        name: 'VoucherManage',
+        component: () => import('@/views/accounting/voucher.vue'),
+        meta: { title: '凭证管理', icon: 'Tickets' }
       },
       {
         path: 'cfca',
@@ -100,6 +111,12 @@ const routes: RouteRecordRaw[] = [
             name: 'MenuManage',
             component: () => import('@/views/system/menu/index.vue'),
             meta: { title: '菜单权限', icon: 'Menu' }
+          },
+          {
+            path: 'sync',
+            name: 'Sync',
+            component: () => import('@/views/sync/index.vue'),
+            meta: { title: '基础信息同步', icon: 'Refresh' }
           }
         ]
       },

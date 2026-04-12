@@ -2,6 +2,7 @@ package com.guarantee.finance.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.guarantee.finance.common.R;
+import com.guarantee.finance.dto.SubjectBalanceInitDTO;
 import com.guarantee.finance.dto.SubjectDTO;
 import com.guarantee.finance.service.AccAccountSubjectService;
 import com.guarantee.finance.vo.SubjectVO;
@@ -80,7 +81,7 @@ public class SubjectController {
     }
 
     @PostMapping("/import")
-    public R<Void> importSubjects(@RequestParam("file") MultipartFile file) {
+    public R<Map<String, Object>> importSubjects(@RequestParam("file") MultipartFile file) {
         accAccountSubjectService.importSubjects(file);
         return R.ok();
     }
@@ -88,6 +89,26 @@ public class SubjectController {
     @PostMapping("/validate")
     public R<Map<String, Object>> validateSubjects() {
         Map<String, Object> result = accAccountSubjectService.validateSubjects();
+        return R.ok(result);
+    }
+
+    @GetMapping("/balance/list")
+    public R<List<SubjectBalanceInitDTO>> getSubjectBalances(
+            @RequestParam(required = false) String period) {
+        List<SubjectBalanceInitDTO> balances = accAccountSubjectService.getSubjectBalances(period);
+        return R.ok(balances);
+    }
+
+    @PostMapping("/balance/init")
+    public R<Void> initSubjectBalances(@RequestBody List<SubjectBalanceInitDTO> balanceList) {
+        accAccountSubjectService.initSubjectBalances(balanceList);
+        return R.ok();
+    }
+
+    @PostMapping("/balance/validate")
+    public R<Map<String, Object>> validateBalances(
+            @RequestParam(required = false) String period) {
+        Map<String, Object> result = accAccountSubjectService.validateBalances(period);
         return R.ok(result);
     }
 }

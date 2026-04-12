@@ -33,6 +33,16 @@ export interface SubjectDTO {
   systemType: string
 }
 
+export interface SubjectBalanceInitDTO {
+  subjectCode: string
+  subjectName: string
+  beginDebit: number
+  beginCredit: number
+  period: string
+  year: number
+  month: number
+}
+
 export function getSubjectPage(params: {
   subjectCode?: string
   subjectName?: string
@@ -87,4 +97,16 @@ export function importSubjects(file: File) {
 
 export function validateSubjects() {
   return request.post('/accounting/subject/validate')
+}
+
+export function getSubjectBalances(period?: string) {
+  return request.get('/accounting/subject/balance/list', { params: { period } })
+}
+
+export function initSubjectBalances(balanceList: SubjectBalanceInitDTO[]) {
+  return request.post('/accounting/subject/balance/init', balanceList)
+}
+
+export function validateBalances(period?: string) {
+  return request.post('/accounting/subject/balance/validate', null, { params: { period } })
 }

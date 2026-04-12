@@ -88,11 +88,12 @@ public class AccVoucherServiceImpl extends ServiceImpl<AccVoucherMapper, AccVouc
         voucher.setRemark(dto.getRemark());
         voucher.setNcSyncStatus("0");
 
-        // 解析年份和月份
         if (dto.getVoucherDate() != null) {
-            LocalDate date = LocalDate.parse(dto.getVoucherDate());
-            voucher.setYear(date.getYear());
-            voucher.setMonth(date.getMonthValue());
+            LocalDate date = parseVoucherDate(dto.getVoucherDate());
+            if (date != null) {
+                voucher.setYear(date.getYear());
+                voucher.setMonth(date.getMonthValue());
+            }
         }
 
         accVoucherMapper.insert(voucher);
@@ -131,11 +132,12 @@ public class AccVoucherServiceImpl extends ServiceImpl<AccVoucherMapper, AccVouc
         voucher.setSourceId(dto.getSourceId());
         voucher.setRemark(dto.getRemark());
 
-        // 解析年份和月份
         if (dto.getVoucherDate() != null) {
-            LocalDate date = LocalDate.parse(dto.getVoucherDate());
-            voucher.setYear(date.getYear());
-            voucher.setMonth(date.getMonthValue());
+            LocalDate date = parseVoucherDate(dto.getVoucherDate());
+            if (date != null) {
+                voucher.setYear(date.getYear());
+                voucher.setMonth(date.getMonthValue());
+            }
         }
 
         accVoucherMapper.updateById(voucher);
@@ -283,35 +285,192 @@ public class AccVoucherServiceImpl extends ServiceImpl<AccVoucherMapper, AccVouc
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void importVouchers(org.springframework.web.multipart.MultipartFile file) {
-        // TODO: 使用Apache POI实现Excel导入
-        // 1. 读取Excel文件
-        // 2. 解析凭证数据
-        // 3. 批量创建凭证
-        throw new UnsupportedOperationException("Import functionality not implemented yet");
+        try {
+            org.apache.poi.ss.usermodel.Workbook workbook = org.apache.poi.ss.usermodel.WorkbookFactory.create(file.getInputStream());
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
+            
+            java.util.Map<String, VoucherDTO> voucherMap = new java.util.LinkedHashMap<>();
+            
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                org.apache.poi.ss.usermodel.Row row = sheet.getRow(i);
+                if (row == null) continue;
+                
+                String voucherNo = getCellValue(row.getCell(0));
+                if (voucherNo == null || voucherNo.isEmpty()) continue;
+                
+                VoucherDTO dto = voucherMap.computeIfAbsent(voucherNo, k -> {
+                    VoucherDTO newDto = new VoucherDTO();
+                    newDto.setVoucherNo(voucherNo);
+                    newDto.setVoucherDate(getCellValue(row.getCell(1)));
+                    newDto.setPeriod(getCellValue(row.getCell(2)));
+                    newDto.setSummary(getCellValue(row.getCell(3)));
+                    String voucherTypeStr = getCellValue(row.getCell(4));
+                    newDto.setVoucherType(voucherTypeStr != null ? Integer.parseInt(voucherTypeStr) : 1);
+                    newDto.setSourceType("2");
+                    newDto.setDetails(new java.util.ArrayList<>());
+                    return newDto;
+                });
+                
+                VoucherDetailDTO detail = new VoucherDetailDTO();
+                detail.setSubjectCode(getCellValue(row.getCell(5)));
+                detail.setSubjectName(getCellValue(row.getCell(6)));
+                detail.setSummary(getCellValue(row.getCell(7)));
+                String debitStr = getCellValue(row.getCell(8));
+                detail.setDebitAmount(debitStr != null && !debitStr.isEmpty() ? new BigDecimal(debitStr) : BigDecimal.ZERO);
+                String creditStr = getCellValue(row.getCell(9));
+                detail.setCreditAmount(creditStr != null && !creditStr.isEmpty() ? new BigDecimal(creditStr) : BigDecimal.ZERO);
+                
+                dto.getDetails().add(detail);
+            }
+            
+            workbook.close();
+            
+            for (VoucherDTO dto : voucherMap.values()) {
+                try {
+                    createVoucher(dto);
+                } catch (Exception e) {
+                    log.error("导入凭证失败: " + dto.getVoucherNo(), e);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("导入凭证失败: " + e.getMessage(), e);
+        }
+    }
+    
+    private String getCellValue(org.apache.poi.ss.usermodel.Cell cell) {
+        if (cell == null) return null;
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue().trim();
+            case NUMERIC:
+                if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
+                    return new java.text.SimpleDateFormat("yyyy-MM-dd").format(cell.getDateCellValue());
+                }
+                return String.valueOf((long) cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            default:
+                return null;
+        }
     }
 
     @Override
     public byte[] exportVouchersToExcel(String period) {
-        // TODO: 使用Apache POI实现Excel导出
-        // 1. 查询指定期间的凭证
-        // 2. 创建Excel文件
-        // 3. 填充数据
-        // 4. 转换为byte[]返回
-        throw new UnsupportedOperationException("Export to Excel functionality not implemented yet");
+        try {
+            List<VoucherVO> vouchers = getVouchersByPeriod(period);
+            
+            org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("凭证列表");
+            
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+            String[] headers = {"凭证编号", "凭证日期", "会计期间", "摘要", "凭证类型", "状态", "创建人", "创建时间"};
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+            
+            int rowNum = 1;
+            for (VoucherVO voucher : vouchers) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(voucher.getVoucherNo());
+                row.createCell(1).setCellValue(voucher.getVoucherDate());
+                row.createCell(2).setCellValue(voucher.getPeriod());
+                row.createCell(3).setCellValue(voucher.getSummary());
+                row.createCell(4).setCellValue(voucher.getVoucherTypeText());
+                row.createCell(5).setCellValue(voucher.getStatusText());
+                row.createCell(6).setCellValue(voucher.getCreateUserName() != null ? voucher.getCreateUserName() : "");
+                row.createCell(7).setCellValue(voucher.getCreateTime() != null ? voucher.getCreateTime().toString() : "");
+            }
+            
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
+            
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("导出Excel失败: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public byte[] exportVoucherToPdf(Long id) {
-        // TODO: 使用iText实现PDF导出
-        // 1. 查询凭证详情
-        // 2. 创建PDF文档
-        // 3. 填充数据
-        // 4. 转换为byte[]返回
-        throw new UnsupportedOperationException("Export to PDF functionality not implemented yet");
+        try {
+            VoucherVO voucher = getVoucherDetail(id);
+            if (voucher == null) {
+                throw new RuntimeException("凭证不存在");
+            }
+            
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            com.itextpdf.text.pdf.PdfWriter.getInstance(document, outputStream);
+            
+            document.open();
+            
+            com.itextpdf.text.pdf.BaseFont bfChinese = com.itextpdf.text.pdf.BaseFont.createFont(
+                "STSong-Light", "UniGB-UCS2-H", com.itextpdf.text.pdf.BaseFont.NOT_EMBEDDED);
+            com.itextpdf.text.Font titleFont = new com.itextpdf.text.Font(bfChinese, 16, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font normalFont = new com.itextpdf.text.Font(bfChinese, 12, com.itextpdf.text.Font.NORMAL);
+            
+            com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("记账凭证", titleFont);
+            title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new com.itextpdf.text.Paragraph(" "));
+            
+            com.itextpdf.text.pdf.PdfPTable table = new com.itextpdf.text.pdf.PdfPTable(2);
+            table.setWidthPercentage(100);
+            
+            addPdfCell(table, "凭证编号：" + voucher.getVoucherNo(), normalFont);
+            addPdfCell(table, "凭证日期：" + voucher.getVoucherDate(), normalFont);
+            addPdfCell(table, "会计期间：" + voucher.getPeriod(), normalFont);
+            addPdfCell(table, "凭证类型：" + voucher.getVoucherTypeText(), normalFont);
+            
+            document.add(table);
+            document.add(new com.itextpdf.text.Paragraph(" "));
+            
+            com.itextpdf.text.pdf.PdfPTable detailTable = new com.itextpdf.text.pdf.PdfPTable(5);
+            detailTable.setWidthPercentage(100);
+            detailTable.setWidths(new float[]{1, 3, 3, 2, 2});
+            
+            addPdfCell(detailTable, "行号", normalFont);
+            addPdfCell(detailTable, "科目", normalFont);
+            addPdfCell(detailTable, "摘要", normalFont);
+            addPdfCell(detailTable, "借方金额", normalFont);
+            addPdfCell(detailTable, "贷方金额", normalFont);
+            
+            if (voucher.getDetails() != null) {
+                for (VoucherDetailVO detail : voucher.getDetails()) {
+                    addPdfCell(detailTable, String.valueOf(detail.getLineNo()), normalFont);
+                    addPdfCell(detailTable, detail.getSubjectCode() + " " + detail.getSubjectName(), normalFont);
+                    addPdfCell(detailTable, detail.getSummary() != null ? detail.getSummary() : "", normalFont);
+                    addPdfCell(detailTable, detail.getDebitAmount() != null ? detail.getDebitAmount().toString() : "0.00", normalFont);
+                    addPdfCell(detailTable, detail.getCreditAmount() != null ? detail.getCreditAmount().toString() : "0.00", normalFont);
+                }
+            }
+            
+            document.add(detailTable);
+            document.add(new com.itextpdf.text.Paragraph(" "));
+            document.add(new com.itextpdf.text.Paragraph("状态：" + voucher.getStatusText(), normalFont));
+            
+            document.close();
+            
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("导出PDF失败: " + e.getMessage(), e);
+        }
+    }
+    
+    private void addPdfCell(com.itextpdf.text.pdf.PdfPTable table, String text, com.itextpdf.text.Font font) {
+        com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(new com.itextpdf.text.Phrase(text, font));
+        cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+        table.addCell(cell);
     }
 
     private String generateVoucherNo(String voucherDate) {
-        LocalDate date = LocalDate.parse(voucherDate);
+        LocalDate date = parseVoucherDate(voucherDate);
         String dateStr = date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String prefix = "PZ" + dateStr;
 
@@ -419,6 +578,24 @@ public class AccVoucherServiceImpl extends ServiceImpl<AccVoucherMapper, AccVouc
             case 3: return "已记账";
             case 4: return "已作废";
             default: return "未知";
+        }
+    }
+
+    private LocalDate parseVoucherDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return null;
+        }
+        try {
+            if (dateStr.contains("T")) {
+                return LocalDate.parse(dateStr.substring(0, dateStr.indexOf('T')));
+            }
+            return LocalDate.parse(dateStr);
+        } catch (Exception e) {
+            try {
+                return LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            } catch (Exception ex) {
+                throw new RuntimeException("日期格式错误，无法解析: " + dateStr);
+            }
         }
     }
 

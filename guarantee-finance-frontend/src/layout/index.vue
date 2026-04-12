@@ -87,12 +87,19 @@ const activeMenu = computed(() => route.path)
 
 const menuList = [
   { path: 'dashboard', meta: { title: '仪表盘', icon: 'Odometer' } },
-  { path: 'sync', meta: { title: '基础信息同步', icon: 'Refresh' } },
   { path: 'receipt', meta: { title: '收款单管理', icon: 'Wallet' } },
   { path: 'payment', meta: { title: '付款单管理', icon: 'CreditCard' } },
   { path: 'reconciliation', meta: { title: '银行对账', icon: 'Document' } },
   { path: 'bank', meta: { title: '银企直连', icon: 'Link' } },
-  { path: 'accounting', meta: { title: '会计平台', icon: 'Notebook' } },
+  {
+    path: 'accounting',
+    meta: { title: '会计平台', icon: 'Notebook' },
+    children: [
+      { path: 'accounting/subject', meta: { title: '科目管理', icon: 'List' } },
+      { path: 'accounting/auxiliary', meta: { title: '辅助核算', icon: 'Grid' } },
+      { path: 'accounting/voucher', meta: { title: '凭证管理', icon: 'Tickets' } }
+    ]
+  },
   {
     path: 'system/base',
     meta: { title: '基础管理', icon: 'Setting' },
@@ -100,7 +107,8 @@ const menuList = [
       { path: 'system/base/org', meta: { title: '机构管理', icon: 'OfficeBuilding' } },
       { path: 'system/base/user', meta: { title: '用户管理', icon: 'User' } },
       { path: 'system/base/role', meta: { title: '角色管理', icon: 'UserFilled' } },
-      { path: 'system/base/menu', meta: { title: '菜单权限', icon: 'Menu' } }
+      { path: 'system/base/menu', meta: { title: '菜单权限', icon: 'Menu' } },
+      { path: 'system/base/sync', meta: { title: '基础信息同步', icon: 'Refresh' } }
     ]
   },
   { path: 'system/process', meta: { title: '审批流程', icon: 'SetUp' } }

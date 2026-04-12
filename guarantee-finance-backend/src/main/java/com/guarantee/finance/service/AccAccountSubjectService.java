@@ -3,6 +3,7 @@ package com.guarantee.finance.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.guarantee.finance.dto.SubjectBalanceInitDTO;
 import com.guarantee.finance.dto.SubjectDTO;
 import com.guarantee.finance.entity.AccAccountSubject;
 import com.guarantee.finance.vo.SubjectVO;
@@ -34,4 +35,10 @@ public interface AccAccountSubjectService extends IService<AccAccountSubject> {
     void importSubjects(MultipartFile file);
 
     Map<String, Object> validateSubjects();
+
+    void initSubjectBalances(List<SubjectBalanceInitDTO> balanceList);
+
+    Map<String, Object> validateBalances(String period);
+
+    List<SubjectBalanceInitDTO> getSubjectBalances(String period);
 }

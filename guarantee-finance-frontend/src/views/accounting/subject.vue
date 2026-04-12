@@ -14,11 +14,13 @@
             <el-button @click="handleValidate">
               <el-icon><Check /></el-icon> 校验科目
             </el-button>
+            <el-button type="warning" @click="handleBalanceInit">
+              <el-icon><Coin /></el-icon> 余额初始化
+            </el-button>
           </div>
         </div>
       </template>
 
-      <!-- 搜索栏 -->
       <div class="search-bar">
         <el-form :inline="true" :model="searchForm" class="mb-4">
           <el-form-item label="科目编码">
@@ -42,13 +44,7 @@
         </el-form>
       </div>
 
-      <!-- 科目表格 -->
-      <el-table
-        v-loading="loading"
-        :data="subjects"
-        style="width: 100%"
-        border
-      >
+      <el-table v-loading="loading" :data="subjects" style="width: 100%" border>
         <el-table-column prop="subjectCode" label="科目编码" width="150" />
         <el-table-column prop="subjectName" label="科目名称" width="200" />
         <el-table-column prop="subjectLevel" label="层级" width="80">
@@ -62,6 +58,11 @@
             {{ getSubjectTypeText(scope.row.subjectType) }}
           </template>
         </el-table-column>
+        <el-table-column prop="balanceDirection" label="余额方向" width="100">
+          <template #default="scope">
+            {{ scope.row.balanceDirection === 1 ? '借方' : '贷方' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
@@ -72,9 +73,7 @@
         <el-table-column prop="createTime" label="创建时间" width="180" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="scope">
-            <el-button size="small" @click="handleEdit(scope.row)">
-              编辑
-            </el-button>
+            <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button
               size="small"
               :type="scope.row.status === 1 ? 'danger' : 'success'"
@@ -82,14 +81,11 @@
             >
               {{ scope.row.status === 1 ? '封存' : '启用' }}
             </el-button>
-            <el-button size="small" type="danger" @click="handleDelete(scope.row.id)">
-              删除
-            </el-button>
+            <el-button size="small" type="danger" @click="handleDelete(scope.row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
       <div class="pagination-wrapper">
         <el-pagination
           v-model:current-page="pageInfo.current"
@@ -103,18 +99,8 @@
       </div>
     </el-card>
 
-    <!-- 新增/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogType === 'add' ? '新增科目' : '编辑科目'"
-      width="700px"
-    >
-      <el-form
-        :model="formData"
-        :rules="rules"
-        ref="formRef"
-        label-width="120px"
-      >
+    <el-dialog v-model="dialogVisible" :title="dialogType === 'add' ? '新增科目' : '编辑科目'" width="700px">
+      <el-form :model="formData" :rules="rules" ref="formRef" label-width="120px">
         <el-form-item label="科目编码" prop="subjectCode">
           <el-input v-model="formData.subjectCode" placeholder="请输入科目编码" />
         </el-form-item>
@@ -125,7 +111,7 @@
           <el-input-number v-model="formData.subjectLevel" :min="1" :max="5" />
         </el-form-item>
         <el-form-item label="父科目编码" prop="parentCode">
-          <el-select v-model="formData.parentCode" placeholder="请选择父科目">
+          <el-select v-model="formData.parentCode" placeholder="请选择父科目" filterable>
             <el-option label="无" value="" />
             <el-option
               v-for="subject in subjectOptions"
@@ -173,14 +159,164 @@
         </span>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="importDialogVisible" title="导入科目" width="500px">
+      <div class="import-content">
+        <el-alert type="info" :closable="false" class="mb-4">
+          <template #title>
+            <div>Excel文件格式要求：</div>
+            <div>第1列：科目编码，第2列：科目名称，第3列：科目类型（资产/负债/所有者权益/成本/损益），第4列：余额方向（借/贷），第5列：父科目编码</div>
+          </template>
+        </el-alert>
+        <el-upload
+          ref="uploadRef"
+          :auto-upload="false"
+          :limit="1"
+          accept=".xlsx,.xls"
+          :on-change="handleFileChange"
+          :on-exceed="() => ElMessage.warning('只能上传一个文件')"
+          drag
+        >
+          <el-icon size="60"><Upload /></el-icon>
+          <div>将文件拖到此处，或<em>点击上传</em></div>
+          <template #tip>
+            <div class="el-upload__tip">仅支持 .xlsx / .xls 格式</div>
+          </template>
+        </el-upload>
+      </div>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importLoading" @click="doImport">确认导入</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="validateDialogVisible" title="科目校验结果" width="700px">
+      <div v-if="validateResult">
+        <el-result
+          :icon="validateResult.passed ? 'success' : 'error'"
+          :title="validateResult.passed ? '校验通过' : '校验未通过'"
+          :sub-title="`共 ${validateResult.total} 个科目，${validateResult.errorCount} 个错误，${validateResult.warningCount} 个警告`"
+        />
+        <div v-if="validateResult.errors && validateResult.errors.length > 0" class="validate-section">
+          <h4 style="color: #f56c6c">错误信息：</h4>
+          <el-table :data="validateResult.errors.map((e: string, i: number) => ({ index: i + 1, message: e }))" border size="small">
+            <el-table-column prop="index" label="序号" width="60" />
+            <el-table-column prop="message" label="错误信息" />
+          </el-table>
+        </div>
+        <div v-if="validateResult.warnings && validateResult.warnings.length > 0" class="validate-section">
+          <h4 style="color: #e6a23c">警告信息：</h4>
+          <el-table :data="validateResult.warnings.map((w: string, i: number) => ({ index: i + 1, message: w }))" border size="small">
+            <el-table-column prop="index" label="序号" width="60" />
+            <el-table-column prop="message" label="警告信息" />
+          </el-table>
+        </div>
+      </div>
+    </el-dialog>
+
+    <el-dialog v-model="balanceDialogVisible" title="科目余额初始化" width="900px" top="5vh">
+      <div class="balance-toolbar">
+        <el-form :inline="true">
+          <el-form-item label="会计期间">
+            <el-date-picker
+              v-model="balancePeriod"
+              type="month"
+              placeholder="选择会计期间"
+              format="YYYY-MM"
+              value-format="YYYY-MM"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="loadBalanceData">查询</el-button>
+            <el-button type="warning" @click="validateBalanceData">校验余额</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+      <el-table :data="balanceData" border style="width: 100%" max-height="500" size="small">
+        <el-table-column prop="subjectCode" label="科目编码" width="130" />
+        <el-table-column prop="subjectName" label="科目名称" width="180" />
+        <el-table-column label="期初借方余额" width="180">
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.beginDebit"
+              :controls="false"
+              :precision="2"
+              :min="0"
+              size="small"
+              style="width: 100%"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="期初贷方余额" width="180">
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.beginCredit"
+              :controls="false"
+              :precision="2"
+              :min="0"
+              size="small"
+              style="width: 100%"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="balance-summary">
+        <span>借方合计：<strong>{{ totalDebit }}</strong></span>
+        <span>贷方合计：<strong>{{ totalCredit }}</strong></span>
+        <span :style="{ color: isBalanced ? '#67c23a' : '#f56c6c' }">
+          差额：<strong>{{ balanceDifference }}</strong>
+          {{ isBalanced ? '(已平衡)' : '(未平衡)' }}
+        </span>
+      </div>
+      <template #footer>
+        <el-button @click="balanceDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="balanceSaving" @click="saveBalanceData">保存初始化余额</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="balanceValidateDialogVisible" title="余额校验结果" width="700px">
+      <div v-if="balanceValidateResult">
+        <el-result
+          :icon="balanceValidateResult.passed ? 'success' : 'error'"
+          :title="balanceValidateResult.passed ? '余额校验通过' : '余额校验未通过'"
+        >
+          <template #sub-title>
+            <div>
+              <p>会计期间：{{ balanceValidateResult.period }}</p>
+              <p>借方合计：{{ balanceValidateResult.totalDebit }} | 贷方合计：{{ balanceValidateResult.totalCredit }}</p>
+              <p v-if="balanceValidateResult.difference">差额：{{ balanceValidateResult.difference }}</p>
+              <p>已初始化科目数：{{ balanceValidateResult.balanceCount }}</p>
+              <p v-if="balanceValidateResult.uninitializedCount > 0" style="color: #e6a23c">
+                未初始化科目数：{{ balanceValidateResult.uninitializedCount }}
+              </p>
+            </div>
+          </template>
+        </el-result>
+        <div v-if="balanceValidateResult.errors && balanceValidateResult.errors.length > 0" class="validate-section">
+          <h4 style="color: #f56c6c">错误信息：</h4>
+          <el-table :data="balanceValidateResult.errors.map((e: string, i: number) => ({ index: i + 1, message: e }))" border size="small">
+            <el-table-column prop="index" label="序号" width="60" />
+            <el-table-column prop="message" label="错误信息" />
+          </el-table>
+        </div>
+        <div v-if="balanceValidateResult.uninitializedSubjects && balanceValidateResult.uninitializedSubjects.length > 0" class="validate-section">
+          <h4 style="color: #e6a23c">未初始化科目（前20个）：</h4>
+          <el-table :data="balanceValidateResult.uninitializedSubjects.map((s: string, i: number) => ({ index: i + 1, name: s }))" border size="small">
+            <el-table-column prop="index" label="序号" width="60" />
+            <el-table-column prop="name" label="科目" />
+          </el-table>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Upload, Check } from '@element-plus/icons-vue'
+import { Plus, Search, Upload, Check, Coin } from '@element-plus/icons-vue'
 import * as subjectApi from '@/api/accounting/subject'
+import type { SubjectBalanceInitDTO } from '@/api/accounting/subject'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -224,6 +360,39 @@ const rules = {
   subjectType: [{ required: true, message: '请选择科目类型', trigger: 'change' }],
   balanceDirection: [{ required: true, message: '请选择余额方向', trigger: 'change' }]
 }
+
+const importDialogVisible = ref(false)
+const importLoading = ref(false)
+const uploadRef = ref()
+const importFile = ref<File | null>(null)
+
+const validateDialogVisible = ref(false)
+const validateResult = ref<any>(null)
+
+const balanceDialogVisible = ref(false)
+const balanceSaving = ref(false)
+const balancePeriod = ref('')
+const balanceData = ref<SubjectBalanceInitDTO[]>([])
+
+const balanceValidateDialogVisible = ref(false)
+const balanceValidateResult = ref<any>(null)
+
+const totalDebit = computed(() => {
+  return balanceData.value.reduce((sum, item) => sum + (item.beginDebit || 0), 0).toFixed(2)
+})
+
+const totalCredit = computed(() => {
+  return balanceData.value.reduce((sum, item) => sum + (item.beginCredit || 0), 0).toFixed(2)
+})
+
+const balanceDifference = computed(() => {
+  const diff = parseFloat(totalDebit.value) - parseFloat(totalCredit.value)
+  return diff.toFixed(2)
+})
+
+const isBalanced = computed(() => {
+  return parseFloat(balanceDifference.value) === 0
+})
 
 onMounted(() => {
   loadSubjects()
@@ -344,15 +513,97 @@ const handleChangeStatus = async (id: number, status: number) => {
 }
 
 const handleImport = () => {
-  ElMessage.info('导入功能开发中')
+  importFile.value = null
+  importDialogVisible.value = true
+}
+
+const handleFileChange = (file: any) => {
+  importFile.value = file.raw
+}
+
+const doImport = async () => {
+  if (!importFile.value) {
+    ElMessage.warning('请先选择要导入的文件')
+    return
+  }
+  importLoading.value = true
+  try {
+    await subjectApi.importSubjects(importFile.value)
+    ElMessage.success('科目导入成功')
+    importDialogVisible.value = false
+    loadSubjects()
+  } catch (error: any) {
+    ElMessage.error(error.message || '导入失败')
+  } finally {
+    importLoading.value = false
+  }
 }
 
 const handleValidate = async () => {
   try {
     const response = await subjectApi.validateSubjects()
-    ElMessage.success('科目校验成功')
+    validateResult.value = response.data
+    validateDialogVisible.value = true
   } catch (error: any) {
     ElMessage.error(error.message || '校验失败')
+  }
+}
+
+const handleBalanceInit = () => {
+  const now = new Date()
+  balancePeriod.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  balanceData.value = []
+  balanceDialogVisible.value = true
+  loadBalanceData()
+}
+
+const loadBalanceData = async () => {
+  try {
+    const response = await subjectApi.getSubjectBalances(balancePeriod.value)
+    balanceData.value = response.data || []
+  } catch (error: any) {
+    ElMessage.error(error.message || '加载余额数据失败')
+  }
+}
+
+const validateBalanceData = async () => {
+  try {
+    const response = await subjectApi.validateBalances(balancePeriod.value)
+    balanceValidateResult.value = response.data
+    balanceValidateDialogVisible.value = true
+  } catch (error: any) {
+    ElMessage.error(error.message || '校验失败')
+  }
+}
+
+const saveBalanceData = async () => {
+  if (!isBalanced.value) {
+    try {
+      await ElMessageBox.confirm(
+        '期初余额借贷不平衡，是否仍要保存？',
+        '余额不平衡',
+        { confirmButtonText: '仍然保存', cancelButtonText: '取消', type: 'warning' }
+      )
+    } catch {
+      return
+    }
+  }
+
+  balanceSaving.value = true
+  try {
+    const saveData = balanceData.value.map(item => ({
+      ...item,
+      period: balancePeriod.value,
+      year: parseInt(balancePeriod.value.split('-')[0]),
+      month: parseInt(balancePeriod.value.split('-')[1])
+    }))
+    await subjectApi.initSubjectBalances(saveData)
+    ElMessage.success('余额初始化保存成功')
+    balanceDialogVisible.value = false
+  } catch (error: any) {
+    ElMessage.error(error.message || '保存失败')
+  } finally {
+    balanceSaving.value = false
   }
 }
 
@@ -410,5 +661,32 @@ const getSubjectTypeText = (type: number) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.import-content {
+  padding: 10px 0;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.validate-section {
+  margin-top: 16px;
+}
+
+.balance-toolbar {
+  margin-bottom: 16px;
+}
+
+.balance-summary {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  font-size: 14px;
 }
 </style>

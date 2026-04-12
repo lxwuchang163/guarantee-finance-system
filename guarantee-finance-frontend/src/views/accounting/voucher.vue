@@ -31,6 +31,7 @@
               placeholder="选择日期"
               clearable
               format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
             />
           </el-form-item>
           <el-form-item label="状态">
@@ -72,7 +73,7 @@
         </el-table-column>
         <el-table-column prop="createUserName" label="创建人" width="120" />
         <el-table-column prop="createTime" label="创建时间" width="180" />
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="350" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="handleView(scope.row.id)">
               查看
@@ -91,6 +92,30 @@
               @click="handleSubmit(scope.row.id)"
             >
               提交
+            </el-button>
+            <el-button
+              v-if="scope.row.status === 1"
+              size="small"
+              type="success"
+              @click="handleAudit(scope.row.id)"
+            >
+              审核
+            </el-button>
+            <el-button
+              v-if="scope.row.status === 2"
+              size="small"
+              type="warning"
+              @click="handlePost(scope.row.id)"
+            >
+              记账
+            </el-button>
+            <el-button
+              v-if="scope.row.status === 3"
+              size="small"
+              type="info"
+              @click="handleUnpost(scope.row.id)"
+            >
+              反记账
             </el-button>
             <el-button
               v-if="scope.row.status !== 4"
@@ -116,6 +141,12 @@
             >
               删除
             </el-button>
+            <el-button
+              size="small"
+              @click="handleExportPdf(scope.row.id)"
+            >
+              导出PDF
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -138,7 +169,8 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogType === 'add' ? '新增凭证' : '编辑凭证'"
-      width="800px"
+      width="900px"
+      :close-on-click-modal="false"
     >
       <el-form
         :model="formData"
@@ -146,35 +178,48 @@
         ref="formRef"
         label-width="100px"
       >
-        <el-form-item label="凭证日期" prop="voucherDate">
-          <el-date-picker
-            v-model="formData.voucherDate"
-            type="date"
-            placeholder="选择日期"
-            format="YYYY-MM-DD"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="会计期间" prop="period">
-          <el-input v-model="formData.period" placeholder="如：2024-01" />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="凭证日期" prop="voucherDate">
+              <el-date-picker
+                v-model="formData.voucherDate"
+                type="date"
+                placeholder="选择日期"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="会计期间" prop="period">
+              <el-input v-model="formData.period" placeholder="如：2024-01" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="凭证类型" prop="voucherType">
+              <el-select v-model="formData.voucherType" placeholder="请选择凭证类型" style="width: 100%">
+                <el-option label="记账凭证" :value="1" />
+                <el-option label="收款凭证" :value="2" />
+                <el-option label="付款凭证" :value="3" />
+                <el-option label="转账凭证" :value="4" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="来源类型" prop="sourceType">
+              <el-select v-model="formData.sourceType" placeholder="请选择来源类型" style="width: 100%">
+                <el-option label="手工" value="0" />
+                <el-option label="自动" value="1" />
+                <el-option label="导入" value="2" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="摘要" prop="summary">
           <el-input v-model="formData.summary" placeholder="请输入摘要" />
-        </el-form-item>
-        <el-form-item label="凭证类型" prop="voucherType">
-          <el-select v-model="formData.voucherType" placeholder="请选择凭证类型">
-            <el-option label="记账凭证" value="1" />
-            <el-option label="收款凭证" value="2" />
-            <el-option label="付款凭证" value="3" />
-            <el-option label="转账凭证" value="4" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="来源类型" prop="sourceType">
-          <el-select v-model="formData.sourceType" placeholder="请选择来源类型">
-            <el-option label="手工" value="0" />
-            <el-option label="自动" value="1" />
-            <el-option label="导入" value="2" />
-          </el-select>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="formData.remark" placeholder="请输入备注" type="textarea" />
@@ -185,7 +230,7 @@
           <el-button type="primary" size="small" @click="addDetail">
             <el-icon><Plus /></el-icon> 新增分录
           </el-button>
-          <div class="detail-list">
+          <div class="detail-list" style="overflow-x: auto;">
             <el-table
               :data="formData.details"
               style="width: 100%"
@@ -197,11 +242,12 @@
                   {{ scope.$index + 1 }}
                 </template>
               </el-table-column>
-              <el-table-column label="科目" min-width="200">
+              <el-table-column label="科目" min-width="280">
                 <template #default="scope">
                   <el-select
                     v-model="scope.row.subjectCode"
                     placeholder="选择科目"
+                    filterable
                     style="width: 100%"
                   >
                     <el-option
@@ -213,28 +259,32 @@
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="摘要" width="150">
+              <el-table-column label="摘要" min-width="180">
                 <template #default="scope">
-                  <el-input v-model="scope.row.summary" placeholder="摘要" />
+                  <el-input v-model="scope.row.summary" placeholder="摘要" style="width: 100%" />
                 </template>
               </el-table-column>
-              <el-table-column label="借方金额" width="120">
+              <el-table-column label="借方金额" width="150">
                 <template #default="scope">
                   <el-input-number
                     v-model="scope.row.debitAmount"
                     :min="0"
                     :step="0.01"
                     :precision="2"
+                    :controls="false"
+                    style="width: 100%"
                   />
                 </template>
               </el-table-column>
-              <el-table-column label="贷方金额" width="120">
+              <el-table-column label="贷方金额" width="150">
                 <template #default="scope">
                   <el-input-number
                     v-model="scope.row.creditAmount"
                     :min="0"
                     :step="0.01"
                     :precision="2"
+                    :controls="false"
+                    style="width: 100%"
                   />
                 </template>
               </el-table-column>
@@ -260,6 +310,66 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 查看凭证详情对话框 -->
+    <el-dialog
+      v-model="viewDialogVisible"
+      title="凭证详情"
+      width="900px"
+    >
+      <div v-if="viewData" class="voucher-detail">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="凭证编号">{{ viewData.voucherNo }}</el-descriptions-item>
+          <el-descriptions-item label="凭证日期">{{ viewData.voucherDate }}</el-descriptions-item>
+          <el-descriptions-item label="会计期间">{{ viewData.period }}</el-descriptions-item>
+          <el-descriptions-item label="凭证类型">{{ viewData.voucherTypeText }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="getStatusType(viewData.status)">{{ viewData.statusText }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="来源类型">
+            {{ viewData.sourceType === '0' ? '手工' : viewData.sourceType === '1' ? '自动' : '导入' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="摘要" :span="2">{{ viewData.summary }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ viewData.remark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div class="detail-section">
+          <h4>凭证分录</h4>
+          <el-table
+            :data="viewData.details"
+            style="width: 100%"
+            border
+            class="mt-2"
+            show-summary
+            :summary-method="getSummary"
+          >
+            <el-table-column label="行号" width="60" prop="lineNo" />
+            <el-table-column label="科目" min-width="250">
+              <template #default="scope">
+                {{ scope.row.subjectCode }} - {{ scope.row.subjectName }}
+              </template>
+            </el-table-column>
+            <el-table-column label="摘要" min-width="180" prop="summary" />
+            <el-table-column label="借方金额" width="150" prop="debitAmount" align="right">
+              <template #default="scope">
+                {{ formatAmount(scope.row.debitAmount) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="贷方金额" width="150" prop="creditAmount" align="right">
+              <template #default="scope">
+                {{ formatAmount(scope.row.creditAmount) }}
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="viewDialogVisible = false">关闭</el-button>
+          <el-button type="primary" @click="handleExportPdf(viewData.id)">导出PDF</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -269,9 +379,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Upload } from '@element-plus/icons-vue'
 import * as voucherApi from '@/api/accounting/voucher'
 import * as subjectApi from '@/api/accounting/subject'
+import axios from 'axios'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
+const viewDialogVisible = ref(false)
 const dialogType = ref('add')
 const formRef = ref()
 const currentId = ref(0)
@@ -291,6 +403,7 @@ const pageInfo = reactive({
 const total = ref(0)
 const vouchers = ref<any[]>([])
 const subjectOptions = ref<any[]>([])
+const viewData = ref<any>(null)
 
 const formData = reactive({
   voucherNo: '',
@@ -396,7 +509,18 @@ const handleEdit = async (id: number) => {
   currentId.value = id
   try {
     const response = await voucherApi.getVoucherDetail(id)
-    Object.assign(formData, response.data)
+    const data = response.data
+    Object.assign(formData, {
+      voucherNo: data.voucherNo,
+      voucherDate: data.voucherDate,
+      period: data.period,
+      summary: data.summary,
+      voucherType: data.voucherType,
+      sourceType: data.sourceType,
+      sourceId: data.sourceId,
+      remark: data.remark,
+      details: data.details || []
+    })
     dialogVisible.value = true
   } catch (error) {
     ElMessage.error('加载凭证详情失败')
@@ -406,11 +530,39 @@ const handleEdit = async (id: number) => {
 const handleView = async (id: number) => {
   try {
     const response = await voucherApi.getVoucherDetail(id)
-    // TODO: 显示详情对话框
-    console.log('凭证详情', response.data)
+    viewData.value = response.data
+    viewDialogVisible.value = true
   } catch (error) {
     ElMessage.error('加载凭证详情失败')
   }
+}
+
+const formatAmount = (amount: number | string | null | undefined) => {
+  if (amount === null || amount === undefined || amount === 0) return '-'
+  return Number(amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+const getSummary = (param: any) => {
+  const { columns, data } = param
+  const sums: string[] = []
+  columns.forEach((column: any, index: number) => {
+    if (index === 0) {
+      sums[index] = '合计'
+      return
+    }
+    if (index === 3) {
+      const values = data.map((item: any) => Number(item.debitAmount) || 0)
+      const sum = values.reduce((prev: number, curr: number) => prev + curr, 0)
+      sums[index] = formatAmount(sum)
+    } else if (index === 4) {
+      const values = data.map((item: any) => Number(item.creditAmount) || 0)
+      const sum = values.reduce((prev: number, curr: number) => prev + curr, 0)
+      sums[index] = formatAmount(sum)
+    } else {
+      sums[index] = ''
+    }
+  })
+  return sums
 }
 
 const handleSubmitForm = async () => {
@@ -418,11 +570,25 @@ const handleSubmitForm = async () => {
   await formRef.value.validate(async (valid: boolean) => {
     if (valid) {
       try {
+        const submitData = {
+          ...formData,
+          voucherDate: formData.voucherDate,
+          details: formData.details.map(detail => {
+            const subject = subjectOptions.value.find(s => s.subjectCode === detail.subjectCode)
+            return {
+              ...detail,
+              subjectName: subject ? subject.subjectName : '',
+              debitAmount: Number(detail.debitAmount) || 0,
+              creditAmount: Number(detail.creditAmount) || 0
+            }
+          })
+        }
+
         if (dialogType.value === 'add') {
-          await voucherApi.createVoucher(formData)
+          await voucherApi.createVoucher(submitData)
           ElMessage.success('新增凭证成功')
         } else {
-          await voucherApi.updateVoucher(currentId.value, formData)
+          await voucherApi.updateVoucher(currentId.value, submitData)
           ElMessage.success('编辑凭证成功')
         }
         dialogVisible.value = false
@@ -495,8 +661,100 @@ const handleDelete = async (id: number) => {
   }
 }
 
+const handleAudit = async (id: number) => {
+  try {
+    const { value: opinion } = await ElMessageBox.prompt('请输入审核意见', '审核凭证', {
+      confirmButtonText: '通过',
+      cancelButtonText: '取消',
+      inputPlaceholder: '请输入审核意见',
+      inputType: 'textarea'
+    })
+
+    await voucherApi.approveVoucher(id, opinion || '审核通过')
+    ElMessage.success('审核通过')
+    loadVouchers()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '审核失败')
+    }
+  }
+}
+
+const handlePost = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('确定要记账该凭证吗？', '记账确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await voucherApi.postVoucher(id)
+    ElMessage.success('记账成功')
+    loadVouchers()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '记账失败')
+    }
+  }
+}
+
+const handleUnpost = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('确定要反记账该凭证吗？', '反记账确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await voucherApi.unpostVoucher(id)
+    ElMessage.success('反记账成功')
+    loadVouchers()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '反记账失败')
+    }
+  }
+}
+
+const handleExportPdf = async (id: number) => {
+  try {
+    const userStore = (await import('@/store/user')).useUserStore()
+    const resp = await axios.get(`/api/accounting/voucher/export/pdf/${id}`, {
+      responseType: 'blob',
+      headers: {
+        Authorization: `Bearer ${userStore.token}`
+      }
+    })
+    const blob = new Blob([resp.data], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `voucher_${id}.pdf`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出PDF成功')
+  } catch (error: any) {
+    ElMessage.error(error.message || '导出PDF失败')
+  }
+}
+
 const handleImport = () => {
-  ElMessage.info('导入功能开发中')
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.xlsx,.xls'
+  input.onchange = async (e: Event) => {
+    const target = e.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (file) {
+      try {
+        ElMessage.info('正在导入凭证...')
+        await voucherApi.importVouchers(file)
+        ElMessage.success('导入凭证成功')
+        loadVouchers()
+      } catch (error: any) {
+        ElMessage.error(error.message || '导入失败')
+      }
+    }
+  }
+  input.click()
 }
 
 const addDetail = () => {
@@ -520,7 +778,6 @@ const addDetail = () => {
 
 const removeDetail = (index: number) => {
   formData.details.splice(index, 1)
-  // 更新行号
   formData.details.forEach((detail, idx) => {
     detail.lineNo = idx + 1
   })
@@ -601,5 +858,19 @@ const getStatusType = (status: number) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.voucher-detail {
+  padding: 10px 0;
+}
+
+.detail-section {
+  margin-top: 20px;
+}
+
+.detail-section h4 {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #303133;
 }
 </style>

@@ -1,5 +1,6 @@
 package com.guarantee.finance.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.guarantee.finance.common.BaseEntity;
 import lombok.Data;
@@ -15,4 +16,7 @@ public class TodoItem extends BaseEntity {
     private String priority;
     private String status;
     private String description;
+
+    @TableField(exist = false)
+    private String displayTime;
 }

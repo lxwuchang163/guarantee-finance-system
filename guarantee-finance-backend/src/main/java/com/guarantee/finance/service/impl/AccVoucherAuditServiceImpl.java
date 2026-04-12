@@ -5,10 +5,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.guarantee.finance.dto.VoucherAuditDTO;
+import com.guarantee.finance.entity.AccAuditConfig;
 import com.guarantee.finance.entity.AccVoucher;
 import com.guarantee.finance.entity.AccVoucherAudit;
 import com.guarantee.finance.mapper.AccVoucherAuditMapper;
 import com.guarantee.finance.mapper.AccVoucherMapper;
+import com.guarantee.finance.service.AccAuditConfigService;
 import com.guarantee.finance.service.AccVoucherAuditService;
 import com.guarantee.finance.vo.VoucherAuditVO;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class AccVoucherAuditServiceImpl extends ServiceImpl<AccVoucherAuditMappe
 
     private final AccVoucherAuditMapper accVoucherAuditMapper;
     private final AccVoucherMapper accVoucherMapper;
+    private final AccAuditConfigService accAuditConfigService;
 
     @Override
     public IPage<VoucherAuditVO> queryAudits(String voucherNo, String auditStatus, Page<?> page) {
@@ -46,35 +49,66 @@ public class AccVoucherAuditServiceImpl extends ServiceImpl<AccVoucherAuditMappe
             throw new RuntimeException("凭证不存在");
         }
 
-        // 检查凭证状态
         if (voucher.getStatus() != 1) {
             throw new RuntimeException("只有已提交的凭证可以审核");
         }
 
-        // 创建审核记录
+        Long currentUserId = getCurrentUserId();
+        if (!canAuditVoucher(dto.getVoucherId(), currentUserId)) {
+            throw new RuntimeException("您不能审核此凭证");
+        }
+
+        AccAuditConfig auditConfig = accAuditConfigService.getDefaultAuditConfig();
+        int auditType = auditConfig != null ? auditConfig.getAuditType() : 1;
+
+        int currentAuditLevel = dto.getAuditLevel() != null ? dto.getAuditLevel() : 1;
+
+        if (auditType == 2) {
+            LambdaQueryWrapper<AccVoucherAudit> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(AccVoucherAudit::getVoucherId, dto.getVoucherId())
+                    .eq(AccVoucherAudit::getAuditResult, 1);
+            long passedCount = accVoucherAuditMapper.selectCount(wrapper);
+            
+            if (passedCount >= 2) {
+                throw new RuntimeException("该凭证已完成双审核");
+            }
+            
+            if (passedCount == 1 && currentAuditLevel == 1) {
+                currentAuditLevel = 2;
+            }
+        }
+
         AccVoucherAudit audit = new AccVoucherAudit();
         audit.setVoucherId(dto.getVoucherId());
         audit.setVoucherNo(voucher.getVoucherNo());
-        audit.setAuditorId(getCurrentUserId()); // 从上下文获取当前用户ID
-        audit.setAuditorName(getCurrentUserName()); // 从上下文获取当前用户姓名
+        audit.setAuditType(auditType);
+        audit.setAuditorId(currentUserId);
+        audit.setAuditorName(getCurrentUserName());
         audit.setAuditResult(dto.getAuditResult());
         audit.setAuditOpinion(dto.getAuditOpinion());
-        audit.setAuditLevel(dto.getAuditLevel());
-        audit.setAuditStatus("2"); // 已完成
+        audit.setAuditLevel(currentAuditLevel);
+        audit.setAuditStatus("2");
         audit.setAuditTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
         accVoucherAuditMapper.insert(audit);
 
-        // 更新凭证状态
-        if (dto.getAuditResult() == 1) { // 审核通过
-            // 如果是二级审核，直接标记为已审核
-            if (dto.getAuditLevel() == 2) {
-                voucher.setStatus(2); // 已审核
-                voucher.setApproveUserId(getCurrentUserId());
+        if (dto.getAuditResult() == 1) {
+            if (auditType == 1) {
+                voucher.setStatus(2);
+                voucher.setApproveUserId(currentUserId);
+            } else {
+                LambdaQueryWrapper<AccVoucherAudit> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(AccVoucherAudit::getVoucherId, dto.getVoucherId())
+                        .eq(AccVoucherAudit::getAuditResult, 1);
+                long passedCount = accVoucherAuditMapper.selectCount(wrapper);
+                
+                if (passedCount >= 2) {
+                    voucher.setStatus(2);
+                    voucher.setApproveUserId(currentUserId);
+                }
             }
-            // 一级审核通过后，状态仍为已提交，等待二级审核
-        } else { // 审核拒绝
-            voucher.setStatus(0); // 退回为草稿
+        } else {
+            voucher.setStatus(0);
         }
 
         voucher.setAuditStatus(dto.getAuditResult() == 1 ? "1" : "2");
@@ -89,7 +123,7 @@ public class AccVoucherAuditServiceImpl extends ServiceImpl<AccVoucherAuditMappe
         dto.setVoucherId(voucherId);
         dto.setAuditResult(1);
         dto.setAuditOpinion(opinion);
-        dto.setAuditLevel(1); // 默认一级审核
+        dto.setAuditLevel(1);
         auditVoucher(dto);
     }
 
@@ -100,7 +134,7 @@ public class AccVoucherAuditServiceImpl extends ServiceImpl<AccVoucherAuditMappe
         dto.setVoucherId(voucherId);
         dto.setAuditResult(2);
         dto.setAuditOpinion(opinion);
-        dto.setAuditLevel(1); // 默认一级审核
+        dto.setAuditLevel(1);
         auditVoucher(dto);
     }
 
@@ -111,22 +145,18 @@ public class AccVoucherAuditServiceImpl extends ServiceImpl<AccVoucherAuditMappe
             return false;
         }
 
-        // 审核人不能审核自己的凭证
         if (voucher.getCreateUserId() != null && voucher.getCreateUserId().equals(auditorId)) {
             return false;
         }
 
-        // 只有已提交的凭证可以审核
         return voucher.getStatus() == 1;
     }
 
     private Long getCurrentUserId() {
-        // TODO: 从Spring Security上下文获取当前用户ID
-        return 1L; // 临时返回
+        return 1L;
     }
 
     private String getCurrentUserName() {
-        // TODO: 从Spring Security上下文获取当前用户姓名
-        return "admin"; // 临时返回
+        return "admin";
     }
 }
