@@ -1,5 +1,6 @@
 <template>
   <div class="dashboard-container">
+    <el-loading v-loading="loading" element-loading-text="加载中..." fullscreen>
     <el-row :gutter="16" class="stat-cards">
       <el-col :xs="12" :sm="8" :md="4" v-for="item in statCards" :key="item.title">
         <el-card shadow="hover" class="stat-card" :style="{ borderTop: `3px solid ${item.color}` }">
@@ -161,16 +162,20 @@
         <el-button @click="todoDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+    </el-loading>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { CaretTop, CaretBottom, ArrowRight, Wallet, CreditCard, Document, Finished, Link, Tickets, DataBoard } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { getDashboardStats, getTodoList, getNoticeList, getIncomeExpenseData, getBusinessTypeData, processTodo } from '@/api/dashboard'
 import type { DashboardStats, TodoItem, Notice } from '@/api/dashboard'
+
+const router = useRouter()
 
 const loading = ref(false)
 
@@ -192,8 +197,8 @@ const pendingCards = ref([
 
 const todoList = ref<TodoItem[]>([])
 const noticeList = ref<Notice[]>([])
-const incomeExpenseData = ref([])
-const businessTypeData = ref([])
+const incomeExpenseData = ref<any[]>([])
+const businessTypeData = ref<any[]>([])
 
 const noticeDialogVisible = ref(false)
 const selectedNotice = ref<Notice | null>(null)
@@ -228,6 +233,13 @@ const handleViewTodo = (row: TodoItem) => {
 }
 
 const handleProcess = async (row: TodoItem) => {
+  if (row.actionUrl) {
+    const url = new URL(row.actionUrl, window.location.origin)
+    const targetPath = url.pathname
+    const targetSearch = url.search
+    router.push(targetPath + targetSearch)
+    return
+  }
   try {
     await processTodo(row.id)
     ElMessage.success('处理成功')
@@ -270,19 +282,19 @@ const loadStats = async () => {
     const data = response.data as DashboardStats
     
     statCards.value = [
-      { title: '今日收款', value: formatAmount(data.todayIncome), icon: Wallet, color: '#409eff', change: data.changeRates.todayIncome, trend: data.changeRates.todayIncome.startsWith('+') ? 'up' : 'down' },
-      { title: '今日付款', value: formatAmount(data.todayExpense), icon: CreditCard, color: '#f56c6c', change: data.changeRates.todayExpense, trend: data.changeRates.todayExpense.startsWith('+') ? 'up' : 'down' },
+      { title: '今日收款', value: formatAmount(data.todayIncome), icon: Wallet, color: '#409eff', change: data.changeRates.todayIncome || '0%', trend: (data.changeRates.todayIncome || '').startsWith('+') ? 'up' : 'down' },
+      { title: '今日付款', value: formatAmount(data.todayExpense), icon: CreditCard, color: '#f56c6c', change: data.changeRates.todayExpense || '0%', trend: (data.changeRates.todayExpense || '').startsWith('+') ? 'up' : 'down' },
       { title: '本月收款', value: formatAmount(data.monthIncome), icon: DataBoard, color: '#67c23a', change: '+0%', trend: 'up' },
       { title: '本月付款', value: formatAmount(data.monthExpense), icon: DataBoard, color: '#e6a23c', change: '+0%', trend: 'down' },
-      { title: '待审核单据', value: String(data.pendingDocuments), icon: Document, color: '#909399', change: data.changeRates.pendingDocuments, trend: 'up' },
+      { title: '待审核单据', value: String(data.pendingDocuments), icon: Document, color: '#909399', change: data.changeRates.pendingDocuments || '0', trend: 'up' },
       { title: '银行账户', value: String(data.bankAccounts), icon: Link, color: '#409eff', change: '', trend: 'up' }
     ]
 
     pendingCards.value = [
-      { title: '收款代办', count: data.pendingReceipts, desc: '待处理收款单', icon: Wallet, color: '#409eff', details: [{ label: '总收款单', value: data.totalReceipts }, { label: '待处理', value: data.pendingReceipts }] },
-      { title: '付款代办', count: data.pendingPayments, desc: '待处理付款单', icon: CreditCard, color: '#f56c6c', details: [{ label: '总付款单', value: data.totalPayments }, { label: '待处理', value: data.pendingPayments }] },
+      { title: '收款代办', count: data.pendingReceipts, desc: '待处理收款单', icon: Wallet, color: '#409eff', details: [{ label: '待提交', value: 0 }, { label: '待审核', value: data.pendingReceipts }] },
+      { title: '付款代办', count: data.pendingPayments, desc: '待处理付款单', icon: CreditCard, color: '#f56c6c', details: [{ label: '待提交', value: 0 }, { label: '待审核', value: data.pendingPayments }] },
       { title: '对账代办', count: data.monthlyReconciliation - data.completedReconciliation, desc: '待对账记录', icon: Finished, color: '#e6a23c', details: [{ label: '本月对账', value: data.monthlyReconciliation }, { label: '完成率', value: data.reconciliationRate + '%' }] },
-      { title: '银企直连代办', count: data.pendingVouchers, desc: '待审核凭证', icon: Link, color: '#67c23a', details: [{ label: '已连接账户', value: data.bankAccounts }, { label: '凭证审核', value: data.pendingVouchers }] }
+      { title: '银企直连代办', count: data.pendingVouchers, desc: '待审核凭证', icon: Link, color: '#67c23a', details: [{ label: '已连接', value: data.bankAccounts }, { label: '凭证审核', value: data.pendingVouchers }] }
     ]
   } catch (err) {
     console.error('加载统计数据失败:', err)
@@ -292,7 +304,7 @@ const loadStats = async () => {
 const loadTodos = async () => {
   try {
     const response = await getTodoList()
-    todoList.value = response.data
+    todoList.value = response.data as TodoItem[]
   } catch (err) {
     console.error('加载待办事项失败:', err)
   }
@@ -301,7 +313,7 @@ const loadTodos = async () => {
 const loadNotices = async () => {
   try {
     const response = await getNoticeList()
-    noticeList.value = response.data
+    noticeList.value = response.data as Notice[]
   } catch (err) {
     console.error('加载系统公告失败:', err)
   }
@@ -352,9 +364,9 @@ const initBusinessTypeChart = () => {
 const loadChartData = async () => {
   try {
     const incomeExpenseResponse = await getIncomeExpenseData()
-    incomeExpenseData.value = incomeExpenseResponse.data
+    incomeExpenseData.value = incomeExpenseResponse.data as any[]
     const businessTypeResponse = await getBusinessTypeData()
-    businessTypeData.value = businessTypeResponse.data
+    businessTypeData.value = businessTypeResponse.data as any[]
     initIncomeExpenseChart()
     initBusinessTypeChart()
   } catch (err) {
@@ -383,14 +395,29 @@ let refreshTimer: number | null = null
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   loadDashboardData()
-  refreshTimer = window.setInterval(() => loadDashboardData(), 30000)
+  // 每30秒自动刷新数据
+  refreshTimer = window.setInterval(() => {
+    loadDashboardData()
+  }, 30000)
 })
 
 onUnmounted(() => {
-  incomeExpenseChartInstance?.dispose()
-  businessTypeChartInstance?.dispose()
+  // 清理图表实例
+  if (incomeExpenseChartInstance) {
+    incomeExpenseChartInstance.dispose()
+    incomeExpenseChartInstance = null
+  }
+  if (businessTypeChartInstance) {
+    businessTypeChartInstance.dispose()
+    businessTypeChartInstance = null
+  }
+  // 移除事件监听器
   window.removeEventListener('resize', handleResize)
-  if (refreshTimer) clearInterval(refreshTimer)
+  // 清除定时器
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 </script>
 

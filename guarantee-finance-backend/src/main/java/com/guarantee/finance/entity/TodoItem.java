@@ -16,6 +16,9 @@ public class TodoItem extends BaseEntity {
     private String priority;
     private String status;
     private String description;
+    private Long businessId;
+    private String businessType;
+    private String actionUrl;
 
     @TableField(exist = false)
     private String displayTime;

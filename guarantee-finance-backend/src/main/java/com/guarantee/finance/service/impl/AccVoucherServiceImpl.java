@@ -13,6 +13,7 @@ import com.guarantee.finance.mapper.AccAccountSubjectMapper;
 import com.guarantee.finance.mapper.AccVoucherDetailMapper;
 import com.guarantee.finance.mapper.AccVoucherMapper;
 import com.guarantee.finance.service.AccVoucherService;
+import com.guarantee.finance.service.AccountPostingService;
 import com.guarantee.finance.vo.VoucherDetailVO;
 import com.guarantee.finance.vo.VoucherVO;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AccVoucherServiceImpl extends ServiceImpl<AccVoucherMapper, AccVouc
     private final AccVoucherMapper accVoucherMapper;
     private final AccVoucherDetailMapper accVoucherDetailMapper;
     private final AccAccountSubjectMapper accAccountSubjectMapper;
+    private final AccountPostingService accountPostingService;
 
     @Override
     public IPage<VoucherVO> queryVouchers(String voucherNo, String period, String voucherDate, Integer status, Page<?> page) {
@@ -242,34 +244,13 @@ public class AccVoucherServiceImpl extends ServiceImpl<AccVoucherMapper, AccVouc
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void postVoucher(Long id) {
-        AccVoucher voucher = accVoucherMapper.selectById(id);
-        if (voucher == null) {
-            throw new RuntimeException("凭证不存在");
-        }
-
-        if (voucher.getStatus() != 2) {
-            throw new RuntimeException("只有已审核的凭证可以记账");
-        }
-
-        voucher.setStatus(3); // 已记账
-        voucher.setPostUserId(getCurrentUserId());
-        accVoucherMapper.updateById(voucher);
+        accountPostingService.postVoucher(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void unpostVoucher(Long id) {
-        AccVoucher voucher = accVoucherMapper.selectById(id);
-        if (voucher == null) {
-            throw new RuntimeException("凭证不存在");
-        }
-
-        if (voucher.getStatus() != 3) {
-            throw new RuntimeException("只有已记账的凭证可以反记账");
-        }
-
-        voucher.setStatus(2); // 恢复为已审核
-        accVoucherMapper.updateById(voucher);
+        accountPostingService.unpostVoucher(id);
     }
 
     private Long getCurrentUserId() {

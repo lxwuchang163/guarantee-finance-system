@@ -8,9 +8,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.guarantee.finance.common.R;
 import com.guarantee.finance.dto.ReceiptDTO;
 import com.guarantee.finance.entity.FinReceipt;
+import com.guarantee.finance.entity.AccVoucher;
 import com.guarantee.finance.mapper.FinReceiptMapper;
 import com.guarantee.finance.security.LoginUser;
 import com.guarantee.finance.service.FinReceiptService;
+import com.guarantee.finance.service.VoucherAutoGenerateService;
+import com.guarantee.finance.service.TodoService;
 import com.guarantee.finance.vo.ReceiptVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.Authentication;
@@ -27,6 +30,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class FinReceiptServiceImpl extends ServiceImpl<FinReceiptMapper, FinReceipt> implements FinReceiptService {
 
     private static final AtomicLong RECEIPT_NO_SEQ = new AtomicLong(0);
+
+    private final VoucherAutoGenerateService voucherAutoGenerateService;
+    private final TodoService todoService;
+
+    public FinReceiptServiceImpl(VoucherAutoGenerateService voucherAutoGenerateService, TodoService todoService) {
+        this.voucherAutoGenerateService = voucherAutoGenerateService;
+        this.todoService = todoService;
+    }
 
     @Override
     public IPage<ReceiptVO> queryPage(String keyword, Integer businessType, String customerCode,
@@ -128,10 +139,27 @@ public class FinReceiptServiceImpl extends ServiceImpl<FinReceiptMapper, FinRece
             receipt.setAuditorId(getCurrentUserId());
             receipt.setAuditorName(getCurrentUserName());
             receipt.setAuditorTime(LocalDateTime.now());
+
+            updateById(receipt);
+
+            try {
+                AccVoucher voucher = voucherAutoGenerateService.generateReceiptVoucher(receipt);
+                receipt.setVoucherId(voucher.getId());
+                receipt.setVoucherNo(voucher.getVoucherNo());
+                updateById(receipt);
+            } catch (Exception e) {
+                throw new RuntimeException("审核通过但自动生成凭证失败: " + e.getMessage(), e);
+            }
+
+            try {
+                todoService.completeTodoByBusiness(id, "receipt");
+            } catch (Exception e) {
+                // ignore
+            }
         } else {
             receipt.setStatus(0); // 驳回回草稿
+            updateById(receipt);
         }
-        updateById(receipt);
     }
 
     @Override

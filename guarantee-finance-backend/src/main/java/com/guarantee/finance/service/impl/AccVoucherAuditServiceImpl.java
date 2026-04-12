@@ -12,6 +12,7 @@ import com.guarantee.finance.mapper.AccVoucherAuditMapper;
 import com.guarantee.finance.mapper.AccVoucherMapper;
 import com.guarantee.finance.service.AccAuditConfigService;
 import com.guarantee.finance.service.AccVoucherAuditService;
+import com.guarantee.finance.service.AccountPostingService;
 import com.guarantee.finance.vo.VoucherAuditVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class AccVoucherAuditServiceImpl extends ServiceImpl<AccVoucherAuditMappe
     private final AccVoucherAuditMapper accVoucherAuditMapper;
     private final AccVoucherMapper accVoucherMapper;
     private final AccAuditConfigService accAuditConfigService;
+    private final AccountPostingService accountPostingService;
 
     @Override
     public IPage<VoucherAuditVO> queryAudits(String voucherNo, String auditStatus, Page<?> page) {
@@ -114,6 +116,15 @@ public class AccVoucherAuditServiceImpl extends ServiceImpl<AccVoucherAuditMappe
         voucher.setAuditStatus(dto.getAuditResult() == 1 ? "1" : "2");
         voucher.setAuditOpinion(dto.getAuditOpinion());
         accVoucherMapper.updateById(voucher);
+
+        if (voucher.getStatus() == 2) {
+            try {
+                accountPostingService.postVoucher(voucher.getId());
+                log.info("凭证 {} 审核通过，自动记账成功", voucher.getVoucherNo());
+            } catch (Exception e) {
+                log.error("凭证 {} 审核通过但自动记账失败: {}", voucher.getVoucherNo(), e.getMessage());
+            }
+        }
     }
 
     @Override

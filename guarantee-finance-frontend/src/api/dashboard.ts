@@ -33,6 +33,9 @@ export interface TodoItem {
   createTime: string
   displayTime: string
   description: string
+  businessId: number
+  businessType: string
+  actionUrl: string
 }
 
 export interface Notice {

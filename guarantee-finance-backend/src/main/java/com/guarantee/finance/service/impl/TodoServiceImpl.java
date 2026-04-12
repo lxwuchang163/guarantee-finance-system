@@ -48,6 +48,9 @@ public class TodoServiceImpl extends ServiceImpl<TodoItemMapper, TodoItem> imple
             item.setStatus("pending");
             item.setDescription("收款单 " + r.getReceiptNo() + "，金额：" + r.getAmount() + "，客户：" + r.getCustomerName());
             item.setDisplayTime(r.getCreateTime() != null ? r.getCreateTime().format(fmt) : "");
+            item.setBusinessId(r.getId());
+            item.setBusinessType("receipt");
+            item.setActionUrl("/receipt?id=" + r.getId());
             todoList.add(item);
         }
 
@@ -63,6 +66,9 @@ public class TodoServiceImpl extends ServiceImpl<TodoItemMapper, TodoItem> imple
             item.setStatus("pending");
             item.setDescription("付款单 " + p.getPaymentNo() + "，金额：" + p.getAmount() + "，客户：" + p.getCustomerName());
             item.setDisplayTime(p.getCreateTime() != null ? p.getCreateTime().format(fmt) : "");
+            item.setBusinessId(p.getId());
+            item.setBusinessType("payment");
+            item.setActionUrl("/payment?id=" + p.getId());
             todoList.add(item);
         }
 
@@ -78,6 +84,9 @@ public class TodoServiceImpl extends ServiceImpl<TodoItemMapper, TodoItem> imple
             item.setStatus("pending");
             item.setDescription("账户 " + b.getAccountNo() + " 对账日期：" + b.getReconciliationDate());
             item.setDisplayTime(b.getCreateTime() != null ? b.getCreateTime().format(fmt) : "");
+            item.setBusinessId(b.getId());
+            item.setBusinessType("reconciliation");
+            item.setActionUrl("/reconciliation?id=" + b.getId());
             todoList.add(item);
         }
 
@@ -93,6 +102,9 @@ public class TodoServiceImpl extends ServiceImpl<TodoItemMapper, TodoItem> imple
             item.setStatus("pending");
             item.setDescription("凭证 " + v.getVoucherNo() + "，日期：" + v.getVoucherDate());
             item.setDisplayTime(v.getCreateTime() != null ? v.getCreateTime().format(fmt) : "");
+            item.setBusinessId(v.getId());
+            item.setBusinessType("voucher");
+            item.setActionUrl("/accounting/voucher?id=" + v.getId());
             todoList.add(item);
         }
 
@@ -108,6 +120,9 @@ public class TodoServiceImpl extends ServiceImpl<TodoItemMapper, TodoItem> imple
             item.setStatus("pending");
             item.setDescription("账户 " + bc.getAccountNo() + "（" + bc.getAccountName() + "）银企直连未连接");
             item.setDisplayTime(bc.getCreateTime() != null ? bc.getCreateTime().format(fmt) : "");
+            item.setBusinessId(bc.getId());
+            item.setBusinessType("bank");
+            item.setActionUrl("/bank?id=" + bc.getId());
             todoList.add(item);
         }
 
@@ -128,11 +143,45 @@ public class TodoServiceImpl extends ServiceImpl<TodoItemMapper, TodoItem> imple
             todo.setUpdateTime(LocalDateTime.now());
             return updateById(todo);
         }
+
+        LambdaQueryWrapper<TodoItem> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TodoItem::getBusinessId, id);
+        wrapper.eq(TodoItem::getStatus, "pending");
+        wrapper.last("LIMIT 1");
+        TodoItem byBusinessId = getOne(wrapper);
+        if (byBusinessId != null) {
+            byBusinessId.setStatus("done");
+            byBusinessId.setUpdateTime(LocalDateTime.now());
+            return updateById(byBusinessId);
+        }
+
         return false;
     }
 
     @Override
     public TodoItem getTodoDetail(Long id) {
-        return getById(id);
+        TodoItem todo = getById(id);
+        if (todo != null) {
+            return todo;
+        }
+
+        LambdaQueryWrapper<TodoItem> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TodoItem::getBusinessId, id);
+        wrapper.last("LIMIT 1");
+        return getOne(wrapper);
+    }
+
+    @Override
+    public void completeTodoByBusiness(Long businessId, String businessType) {
+        LambdaQueryWrapper<TodoItem> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TodoItem::getBusinessId, businessId);
+        wrapper.eq(TodoItem::getBusinessType, businessType);
+        wrapper.eq(TodoItem::getStatus, "pending");
+        List<TodoItem> todos = list(wrapper);
+        for (TodoItem todo : todos) {
+            todo.setStatus("done");
+            todo.setUpdateTime(LocalDateTime.now());
+            updateById(todo);
+        }
     }
 }

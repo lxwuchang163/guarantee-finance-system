@@ -97,7 +97,14 @@ const menuList = [
     children: [
       { path: 'accounting/subject', meta: { title: '科目管理', icon: 'List' } },
       { path: 'accounting/auxiliary', meta: { title: '辅助核算', icon: 'Grid' } },
-      { path: 'accounting/voucher', meta: { title: '凭证管理', icon: 'Tickets' } }
+      { path: 'accounting/voucher', meta: { title: '凭证管理', icon: 'Tickets' } },
+      { path: 'accounting/voucher-rule', meta: { title: '凭证规则', icon: 'SetUp' } },
+      { path: 'accounting/general-ledger', meta: { title: '总分类账', icon: 'Notebook' } },
+      { path: 'accounting/detail-ledger', meta: { title: '明细分类账', icon: 'Document' } },
+      { path: 'accounting/balance-report', meta: { title: '科目余额表', icon: 'DataBoard' } },
+      { path: 'accounting/period', meta: { title: '期末处理', icon: 'Calendar' } },
+      { path: 'accounting/carry-forward', meta: { title: '自动结转', icon: 'Switch' } },
+      { path: 'accounting/report', meta: { title: '报表管理', icon: 'TrendCharts' } }
     ]
   },
   {
@@ -108,7 +115,8 @@ const menuList = [
       { path: 'system/base/user', meta: { title: '用户管理', icon: 'User' } },
       { path: 'system/base/role', meta: { title: '角色管理', icon: 'UserFilled' } },
       { path: 'system/base/menu', meta: { title: '菜单权限', icon: 'Menu' } },
-      { path: 'system/base/sync', meta: { title: '基础信息同步', icon: 'Refresh' } }
+      { path: 'system/base/sync', meta: { title: '基础信息同步', icon: 'Refresh' } },
+      { path: 'system/base/notice', meta: { title: '公告管理', icon: 'Bell' } }
     ]
   },
   { path: 'system/process', meta: { title: '审批流程', icon: 'SetUp' } }

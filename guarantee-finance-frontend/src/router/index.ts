@@ -72,6 +72,48 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '凭证管理', icon: 'Tickets' }
       },
       {
+        path: 'accounting/voucher-rule',
+        name: 'VoucherRule',
+        component: () => import('@/views/accounting/voucher-rule/index.vue'),
+        meta: { title: '凭证规则', icon: 'SetUp' }
+      },
+      {
+        path: 'accounting/general-ledger',
+        name: 'GeneralLedger',
+        component: () => import('@/views/accounting/general-ledger/index.vue'),
+        meta: { title: '总分类账', icon: 'Notebook' }
+      },
+      {
+        path: 'accounting/detail-ledger',
+        name: 'DetailLedger',
+        component: () => import('@/views/accounting/detail-ledger/index.vue'),
+        meta: { title: '明细分类账', icon: 'Document' }
+      },
+      {
+        path: 'accounting/balance-report',
+        name: 'BalanceReport',
+        component: () => import('@/views/accounting/balance-report/index.vue'),
+        meta: { title: '科目余额表', icon: 'DataBoard' }
+      },
+      {
+        path: 'accounting/period',
+        name: 'PeriodManage',
+        component: () => import('@/views/accounting/period/index.vue'),
+        meta: { title: '期末处理', icon: 'Calendar' }
+      },
+      {
+        path: 'accounting/carry-forward',
+        name: 'CarryForward',
+        component: () => import('@/views/accounting/carry-forward/index.vue'),
+        meta: { title: '自动结转', icon: 'Switch' }
+      },
+      {
+        path: 'accounting/report',
+        name: 'FinancialReport',
+        component: () => import('@/views/accounting/report/index.vue'),
+        meta: { title: '报表管理', icon: 'TrendCharts' }
+      },
+      {
         path: 'cfca',
         name: 'CfcaManage',
         component: () => import('@/views/cfca/index.vue'),
@@ -117,6 +159,12 @@ const routes: RouteRecordRaw[] = [
             name: 'Sync',
             component: () => import('@/views/sync/index.vue'),
             meta: { title: '基础信息同步', icon: 'Refresh' }
+          },
+          {
+            path: 'notice',
+            name: 'NoticeManage',
+            component: () => import('@/views/system/notice/index.vue'),
+            meta: { title: '公告管理', icon: 'Bell' }
           }
         ]
       },
@@ -139,7 +187,7 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   NProgress.start()
   document.title = `${to.meta.title || ''} - 担保集团业务财务系统`
   const userStore = useUserStore()
@@ -148,6 +196,13 @@ router.beforeEach((to, _from, next) => {
   } else if (to.path === '/login' && userStore.isLoggedIn) {
     next('/dashboard')
   } else {
+    if (userStore.isLoggedIn && userStore.menuList.length === 0) {
+      try {
+        await userStore.loadMenuAndPermissions()
+      } catch (e) {
+        console.error('加载菜单权限失败:', e)
+      }
+    }
     next()
   }
 })

@@ -19,4 +19,8 @@ public interface SysMenuService extends IService<SysMenu> {
     DataScopeVO getDataScope(Long roleId);
 
     void setDataScope(DataScopeDTO dto);
+
+    List<MenuTreeVO> getCurrentUserMenuTree();
+
+    List<String> getCurrentUserPermissions();
 }

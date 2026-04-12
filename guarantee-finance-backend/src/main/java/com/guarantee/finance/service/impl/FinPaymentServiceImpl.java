@@ -7,9 +7,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.guarantee.finance.dto.PaymentDTO;
 import com.guarantee.finance.entity.FinPayment;
+import com.guarantee.finance.entity.AccVoucher;
 import com.guarantee.finance.mapper.FinPaymentMapper;
 import com.guarantee.finance.security.LoginUser;
 import com.guarantee.finance.service.FinPaymentService;
+import com.guarantee.finance.service.VoucherAutoGenerateService;
+import com.guarantee.finance.service.TodoService;
 import com.guarantee.finance.vo.PaymentVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.Authentication;
@@ -26,6 +29,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class FinPaymentServiceImpl extends ServiceImpl<FinPaymentMapper, FinPayment> implements FinPaymentService {
 
     private static final AtomicLong PAYMENT_NO_SEQ = new AtomicLong(0);
+
+    private final VoucherAutoGenerateService voucherAutoGenerateService;
+    private final TodoService todoService;
+
+    public FinPaymentServiceImpl(VoucherAutoGenerateService voucherAutoGenerateService, TodoService todoService) {
+        this.voucherAutoGenerateService = voucherAutoGenerateService;
+        this.todoService = todoService;
+    }
 
     @Override
     public IPage<PaymentVO> queryPage(String keyword, Integer businessType, String customerCode,
@@ -124,10 +135,27 @@ public class FinPaymentServiceImpl extends ServiceImpl<FinPaymentMapper, FinPaym
             payment.setAuditorId(getCurrentUserId());
             payment.setAuditorName(getCurrentUserName());
             payment.setAuditorTime(LocalDateTime.now());
+
+            updateById(payment);
+
+            try {
+                AccVoucher voucher = voucherAutoGenerateService.generatePaymentVoucher(payment);
+                payment.setVoucherId(voucher.getId());
+                payment.setVoucherNo(voucher.getVoucherNo());
+                updateById(payment);
+            } catch (Exception e) {
+                throw new RuntimeException("审核通过但自动生成凭证失败: " + e.getMessage(), e);
+            }
+
+            try {
+                todoService.completeTodoByBusiness(id, "payment");
+            } catch (Exception e) {
+                // ignore
+            }
         } else {
             payment.setStatus(0); // 驳回回草稿
+            updateById(payment);
         }
-        updateById(payment);
     }
 
     @Override

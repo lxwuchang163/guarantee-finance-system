@@ -91,30 +91,89 @@ public class BankReconciliationServiceImpl implements BankReconciliationService 
     public void executeAutoReconciliation(String accountNo, LocalDate reconciliationDate) {
         log.info("开始执行自动对账，账号：{}，日期：{}", accountNo, reconciliationDate);
 
-        // 获取银行流水（未匹配的）
         LambdaQueryWrapper<BankTransaction> bankWrapper = new LambdaQueryWrapper<>();
         bankWrapper.eq(BankTransaction::getBankAccountNo, accountNo)
                 .eq(BankTransaction::getMatchStatus, 0)
-                .ge(BankTransaction::getTransactionDate, reconciliationDate.minusDays(3))
-                .le(BankTransaction::getTransactionDate, reconciliationDate.plusDays(3));
+                .ge(BankTransaction::getTransactionDate, reconciliationDate.minusDays(7))
+                .le(BankTransaction::getTransactionDate, reconciliationDate.plusDays(7));
         List<BankTransaction> unmatchedBanks = transactionMapper.selectList(bankWrapper);
 
-        // 精确匹配：方向+金额+对方账号+日期容差±3天
-        int autoMatched = 0;
+        int exactMatched = 0;
+        int fuzzyMatched = 0;
+
         for (BankTransaction bankTx : unmatchedBanks) {
-            // 查找匹配的收付款单
-            LambdaQueryWrapper<?> billWrapper = new LambdaQueryWrapper<Object>() {};
-            // 这里简化处理：按金额和方向做精确匹配
-            boolean matched = false;
-            if (matched) {
-                bankTx.setMatchStatus(1); // 精确匹配
+            BigDecimal bankAmount = bankTx.getAmount() != null ? bankTx.getAmount() : BigDecimal.ZERO;
+            int bankType = bankTx.getTransactionType() != null ? bankTx.getTransactionType() : 0;
+
+            LambdaQueryWrapper<BankTransaction> matchWrapper = new LambdaQueryWrapper<>();
+            matchWrapper.eq(BankTransaction::getMatchStatus, 0)
+                    .ne(BankTransaction::getId, bankTx.getId())
+                    .eq(BankTransaction::getAmount, bankAmount);
+
+            if (bankType == 1) {
+                matchWrapper.eq(BankTransaction::getTransactionType, 2);
+            } else if (bankType == 2) {
+                matchWrapper.eq(BankTransaction::getTransactionType, 1);
+            }
+
+            List<BankTransaction> candidates = transactionMapper.selectList(matchWrapper);
+
+            BankTransaction bestMatch = null;
+            String matchRule = null;
+            BigDecimal bestScore = BigDecimal.ZERO;
+
+            for (BankTransaction candidate : candidates) {
+                BigDecimal score = BigDecimal.valueOf(100);
+                if (bankTx.getTransactionDate() != null && candidate.getTransactionDate() != null) {
+                    long daysDiff = Math.abs(ChronoUnit.DAYS.between(bankTx.getTransactionDate(), candidate.getTransactionDate()));
+                    if (daysDiff == 0) {
+                        score = score.add(BigDecimal.ZERO);
+                        matchRule = "amount_date";
+                    } else if (daysDiff <= 3) {
+                        score = score.subtract(BigDecimal.valueOf(daysDiff * 5));
+                        matchRule = "amount_date_fuzzy";
+                    } else {
+                        continue;
+                    }
+                } else {
+                    matchRule = "amount_exact";
+                }
+
+                if (bankTx.getCounterAccountNo() != null && candidate.getCounterAccountNo() != null
+                        && bankTx.getCounterAccountNo().equals(candidate.getCounterAccountNo())) {
+                    score = score.add(BigDecimal.TEN);
+                    matchRule = "amount_date_ref";
+                }
+
+                if (score.compareTo(bestScore) > 0) {
+                    bestScore = score;
+                    bestMatch = candidate;
+                }
+            }
+
+            if (bestMatch != null) {
+                if ("amount_exact".equals(matchRule) || "amount_date".equals(matchRule) || "amount_date_ref".equals(matchRule)) {
+                    bankTx.setMatchStatus(1);
+                    bestMatch.setMatchStatus(1);
+                    exactMatched++;
+                } else {
+                    bankTx.setMatchStatus(2);
+                    bestMatch.setMatchStatus(2);
+                    fuzzyMatched++;
+                }
+                bankTx.setMatchRule(matchRule);
+                bankTx.setMatchScore(bestScore);
+                bankTx.setMatchTime(java.time.LocalDateTime.now());
+                bestMatch.setMatchRule(matchRule);
+                bestMatch.setMatchScore(bestScore);
+                bestMatch.setMatchTime(java.time.LocalDateTime.now());
                 transactionMapper.updateById(bankTx);
-                autoMatched++;
+                transactionMapper.updateById(bestMatch);
             }
         }
-        log.info("自动对账完成，自动匹配：{}笔", autoMatched);
 
-        // 生成对账结果记录
+        log.info("自动对账完成，精确匹配：{}笔，模糊匹配：{}笔", exactMatched, fuzzyMatched);
+
         BankReconciliation recon = new BankReconciliation();
         recon.setBankAccountNo(accountNo);
         recon.setReconciliationDate(reconciliationDate);

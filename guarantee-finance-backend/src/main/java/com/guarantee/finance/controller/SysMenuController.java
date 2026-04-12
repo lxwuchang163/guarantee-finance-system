@@ -76,6 +76,20 @@ public class SysMenuController {
         return R.ok();
     }
 
+    @Operation(summary = "获取当前用户菜单树")
+    @GetMapping("/user-menu")
+    public R<List<MenuTreeVO>> getUserMenuTree() {
+        List<MenuTreeVO> tree = sysMenuService.getCurrentUserMenuTree();
+        return R.ok(tree);
+    }
+
+    @Operation(summary = "获取当前用户权限列表")
+    @GetMapping("/user-permissions")
+    public R<List<String>> getUserPermissions() {
+        List<String> permissions = sysMenuService.getCurrentUserPermissions();
+        return R.ok(permissions);
+    }
+
     @Operation(summary = "获取菜单详情")
     @GetMapping("/{menuId}")
     public R<SysMenu> getMenu(@PathVariable Long menuId) {

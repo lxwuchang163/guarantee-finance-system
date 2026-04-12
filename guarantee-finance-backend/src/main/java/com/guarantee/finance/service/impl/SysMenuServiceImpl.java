@@ -17,6 +17,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -84,8 +85,24 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void setDataScope(DataScopeDTO dto) {
-        // 数据权限配置可以存储在角色表中或单独的数据权限表
-        // 这里简化处理，实际项目中应该有专门的数据权限表
+    }
+
+    @Override
+    public List<MenuTreeVO> getCurrentUserMenuTree() {
+        return getMenuTree();
+    }
+
+    @Override
+    public List<String> getCurrentUserPermissions() {
+        List<SysMenu> allMenus = list(new LambdaQueryWrapper<SysMenu>()
+                .eq(SysMenu::getStatus, 1)
+                .isNotNull(SysMenu::getPermission));
+        return allMenus.stream()
+                .map(SysMenu::getPermission)
+                .filter(Objects::nonNull)
+                .filter(p -> !p.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     private List<MenuTreeVO> buildMenuTree(List<SysMenu> allMenus, Long parentId) {
